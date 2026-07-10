@@ -1,0 +1,19 @@
+{
+  "name": "db-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed:admin": "tsx seed-admin.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/node": "^20.14.10",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.3"
+  }
+}

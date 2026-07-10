@@ -18,6 +18,8 @@ Monorepo, two subfolders:
   (SQL) and MongoDB Atlas (NoSQL). Deploys to Vercel.
 - `auth-server/` - Express (TypeScript). Admin authentication only:
   login, refresh token, JWT verification middleware. Deploys to Render.
+- `db/` - one-off SQL setup: `schema.sql` (Supabase tables) and a seed
+  script for the admin account. Not deployed, run locally once.
 
 ## Status
 
@@ -26,8 +28,17 @@ for the full build plan and phase log.
 
 ## Install
 
-(To be filled in as each server is scaffolded - Phase 3 for `auth-server/`,
-Phase 4 for `web/`.)
+### SQL database (Supabase)
+
+1. Create a Supabase project (free tier).
+2. Open its SQL editor and run `db/schema.sql` to create the
+   `registrations` and `admins` tables.
+3. Copy `db/.env.example` to `db/.env`, fill in `SUPABASE_URL` and
+   `SUPABASE_SERVICE_KEY` from the project's API settings.
+4. `cd db && npm install && npm run seed:admin` - creates the seed admin
+   account (`micha` / bcrypt-hashed `1234`) required by the assignment.
+
+(`auth-server/` and `web/` install steps land in Phase 3 and Phase 4.)
 
 ## Live URLs
 
