@@ -3,12 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "seed:admin": "tsx seed-admin.ts"
+    "seed:admin": "tsx seed-admin.ts",
+    "seed:devices": "tsx seed-devices.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "bcrypt": "^5.1.1",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.5.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

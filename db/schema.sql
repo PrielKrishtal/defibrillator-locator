@@ -24,3 +24,12 @@ CREATE TABLE admins (
   -- sees the plaintext password, and only to hash it before insert.
   password_hash TEXT NOT NULL
 );
+
+-- WHY: tables created through the SQL editor don't automatically get
+-- privileges for Supabase's built-in Postgres roles (only tables created
+-- through the dashboard Table Editor do). Without these grants, even the
+-- service_role key gets "permission denied for table" on every query.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.registrations TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.admins TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.registrations_id_seq TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.admins_id_seq TO service_role;
