@@ -18,8 +18,9 @@ Monorepo, two subfolders:
   (SQL) and MongoDB Atlas (NoSQL). Deploys to Vercel.
 - `auth-server/` - Express (TypeScript). Admin authentication only:
   login, refresh token, JWT verification middleware. Deploys to Render.
-- `db/` - one-off SQL setup: `schema.sql` (Supabase tables) and a seed
-  script for the admin account. Not deployed, run locally once.
+- `db/` - one-off DB setup: `schema.sql` (Supabase tables), the shared
+  `Device` Mongoose model, and seed scripts for the admin account and
+  the simulated devices. Not deployed, run locally once.
 
 ## Status
 
@@ -37,6 +38,14 @@ for the full build plan and phase log.
    `SUPABASE_SERVICE_ROLE_KEY` from the project's API settings.
 4. `cd db && npm install && npm run seed:admin` - creates the seed admin
    account (`micha` / bcrypt-hashed `1234`) required by the assignment.
+
+### NoSQL database (MongoDB Atlas)
+
+1. Create a MongoDB Atlas cluster (free tier).
+2. Add `MONGODB_URI` to `db/.env` (connection string from Atlas's
+   "Connect" dialog, with your database user's password filled in).
+3. `cd db && npm run seed:devices` - clears and refills the `devices`
+   collection with ~50 simulated devices scattered around Tel Aviv.
 
 (`auth-server/` and `web/` install steps land in Phase 3 and Phase 4.)
 
