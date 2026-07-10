@@ -47,7 +47,30 @@ for the full build plan and phase log.
 3. `cd db && npm run seed:devices` - clears and refills the `devices`
    collection with ~50 simulated devices scattered around Tel Aviv.
 
-(`auth-server/` and `web/` install steps land in Phase 3 and Phase 4.)
+Note: `db/schema.sql` now also creates a `refresh_tokens` table (used by
+the auth server to revoke refresh tokens). On an existing Supabase project,
+run just the new `CREATE TABLE refresh_tokens` block and its GRANT lines.
+
+### Auth server (Express)
+
+1. Copy `auth-server/.env.example` to `auth-server/.env`.
+2. Fill in `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (same values as
+   `db/.env`).
+3. Generate two independent JWT secrets and paste them into
+   `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET`:
+   ```
+   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+   ```
+   Run it twice - the two secrets must be different.
+4. Leave `WEB_APP_ORIGIN=http://localhost:3000` for local dev.
+5. `cd auth-server && npm install && npm run dev` - starts on port 4000.
+
+Deploy note: on Render set `NODE_ENV=production` so the refresh-token
+cookie is sent with `Secure` + `SameSite=None` (required cross-site once
+the frontend is on Vercel and the auth server is on Render). Locally,
+leaving `NODE_ENV` unset keeps the cookie on `SameSite=Lax` over http.
+
+(`web/` install steps land in Phase 4.)
 
 ## Live URLs
 
