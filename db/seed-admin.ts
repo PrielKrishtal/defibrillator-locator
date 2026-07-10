@@ -14,9 +14,9 @@ const SEED_PASSWORD = "1234";
 // WHY: fail loudly instead of letting supabase-js throw a confusing error
 // deeper in the client if the .env file was never filled in.
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY in db/.env");
+  throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in db/.env");
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);

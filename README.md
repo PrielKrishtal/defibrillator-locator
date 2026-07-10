@@ -34,7 +34,7 @@ for the full build plan and phase log.
 2. Open its SQL editor and run `db/schema.sql` to create the
    `registrations` and `admins` tables.
 3. Copy `db/.env.example` to `db/.env`, fill in `SUPABASE_URL` and
-   `SUPABASE_SERVICE_KEY` from the project's API settings.
+   `SUPABASE_SERVICE_ROLE_KEY` from the project's API settings.
 4. `cd db && npm install && npm run seed:admin` - creates the seed admin
    account (`micha` / bcrypt-hashed `1234`) required by the assignment.
 
