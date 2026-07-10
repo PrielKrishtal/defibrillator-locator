@@ -25,11 +25,29 @@ CREATE TABLE admins (
   password_hash TEXT NOT NULL
 );
 
+-- One row per issued refresh token. The auth server checks this table on
+-- /refresh (the token's jti must still be here) and deletes the row on
+-- /logout. That's what makes a refresh token revocable before it expires -
+-- a signed-but-deleted token is rejected even though its signature is valid.
+CREATE TABLE refresh_tokens (
+  id SERIAL PRIMARY KEY,
+  -- ON DELETE CASCADE: if an admin is ever removed, their outstanding
+  -- refresh tokens go with them instead of dangling.
+  admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
+  -- the refresh token's unique id (a random UUID baked into the JWT). We
+  -- store only this id, never the token string itself.
+  jti TEXT UNIQUE NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT now()
+);
+
 -- WHY: tables created through the SQL editor don't automatically get
 -- privileges for Supabase's built-in Postgres roles (only tables created
 -- through the dashboard Table Editor do). Without these grants, even the
 -- service_role key gets "permission denied for table" on every query.
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.registrations TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admins TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.refresh_tokens TO service_role;
 GRANT USAGE, SELECT ON SEQUENCE public.registrations_id_seq TO service_role;
 GRANT USAGE, SELECT ON SEQUENCE public.admins_id_seq TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.refresh_tokens_id_seq TO service_role;
