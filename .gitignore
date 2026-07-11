@@ -11,6 +11,7 @@ node_modules/
 
 # working notes for this build, not part of the graded deliverable
 CLAUDE.md
+AGENTS.md
 DEFIBRILLATOR_PROJECT_BRIEF.md
 .claude/
 
