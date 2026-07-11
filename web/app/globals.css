@@ -1,24 +1,72 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* WHY class-based, not the default `media` strategy: Tailwind's dark: variant
+   otherwise auto-flips on the OS's prefers-color-scheme, which would fight
+   this site's deliberate light-only palette below on any device set to dark
+   mode. No .dark class is ever added anywhere, so every `dark:` utility
+   already written in Phase 5/6 files becomes inert rather than needing to be
+   hunted down and removed - see DEFIBRILLATOR_PROJECT_BRIEF.md §11
+   (2026-07-11, Phase 8 design system). */
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* Design tokens. Named for what each color means in this specific system
+   (LoRa signal, emergency flare, radio beacon) rather than generic
+   primary/secondary/accent - see brief §10.6 for the direction and §11 for
+   the full reasoning. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-heebo);
-}
+  --color-paper: #f4f6f5; /* background: cool off-white, not stark white */
+  --color-ink: #1c2321; /* body text: near-black with a slight warmth */
+  --color-signal: #175c52; /* the system itself: devices, the geofence circle */
+  --color-flare: #c4432a; /* the incident only - never decorative */
+  --color-beacon: #b8862e; /* LoRa broadcast ring + the route path */
+  --color-line: #dcd9d2; /* borders, dividers */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: var(--color-paper);
+  --color-foreground: var(--color-ink);
+
+  --font-sans: var(--font-heebo);
+  /* Loaded via a plain <link> in layout.tsx, not next/font/google - see the
+     comment there for why. Literal font-family strings, with a same-genre
+     fallback in case the Google Fonts stylesheet fails to load. */
+  --font-display: "Frank Ruhl Libre", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+
+/* The incident marker's pulse - the one deliberate motion moment on the
+   site, marking the single most urgent point on the map. Respects
+   prefers-reduced-motion since a quality UI doesn't force animation on
+   people who've asked their OS to avoid it. */
+@keyframes signal-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.incident-pulse {
+  animation: signal-pulse 1.8s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .incident-pulse {
+    animation: none;
+    display: none;
+  }
+}
+
+/* Leaflet's default divIcon adds a white box + border via .leaflet-div-icon
+   in leaflet.css - not wanted here, since the incident marker draws its own
+   circle + pulse and should show only that. */
+.incident-icon {
+  background: transparent;
+  border: none;
 }
