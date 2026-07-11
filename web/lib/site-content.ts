@@ -34,6 +34,13 @@ export const DEFAULT_HOMEPAGE_INTRO =
   "את המיקום למתנדבים הקרובים ביותר - דרך רשת ה-LoRa, או באמצעות הודעת " +
   "SMS הכוללת את מספר הטלפון והמיקום של בעל המכשיר.";
 
+export const WHY_VOLUNTEER_KEY = "why_volunteer_copy";
+export const DEFAULT_WHY_VOLUNTEER =
+  "כל מתנדב עם דפיברילטור נייד או מכשיר LoRa יכול להיות ההבדל בין חיים " +
+  "למוות בדקות הראשונות של אירוע דום לב, לפני שצוות רפואי מגיע לזירה. " +
+  "ההרשמה חינמית, אינה דורשת סיסמה, ואינה מחייבת אתכם בכלום מלבד הסכמה " +
+  "שהמערכת תדע לאתר אתכם בעת הצורך.";
+
 export const RADIUS_METERS_KEY = "simulator_radius_meters";
 export const DEFAULT_RADIUS_METERS = 5000;
 

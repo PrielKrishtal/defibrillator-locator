@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Heebo } from "next/font/google";
 import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 // WHY Heebo instead of the scaffold's default Geist font: Geist's Google
@@ -59,6 +60,7 @@ export default function RootLayout({
         />
         <Nav />
         {children}
+        <Footer />
       </body>
     </html>
   );

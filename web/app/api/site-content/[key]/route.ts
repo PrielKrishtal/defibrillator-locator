@@ -11,12 +11,15 @@ import {
   setSiteContent,
   HOMEPAGE_INTRO_KEY,
   DEFAULT_HOMEPAGE_INTRO,
+  WHY_VOLUNTEER_KEY,
+  DEFAULT_WHY_VOLUNTEER,
 } from "@/lib/site-content";
 
-// WHY a map of key -> default: Phase 9 adds more marketing-copy keys later:
-// each one just needs an entry here, nothing else about this route changes.
+// WHY a map of key -> default: each marketing-copy key just needs an entry
+// here, nothing else about this route changes.
 const KNOWN_KEYS: Record<string, string> = {
   [HOMEPAGE_INTRO_KEY]: DEFAULT_HOMEPAGE_INTRO,
+  [WHY_VOLUNTEER_KEY]: DEFAULT_WHY_VOLUNTEER,
 };
 
 export async function GET(
