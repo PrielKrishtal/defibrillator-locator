@@ -1,8 +1,11 @@
+import Link from "next/link";
 import {
   getSiteContent,
   HOMEPAGE_INTRO_KEY,
   DEFAULT_HOMEPAGE_INTRO,
 } from "@/lib/site-content";
+import { ButtonLink } from "@/components/Button";
+import { SignalIcon, RegisterIcon, IncidentIcon } from "@/components/icons";
 
 // Flow-diagram step, drawn as a bordered card. Kept as one small component
 // instead of repeating the same className string four times below.
@@ -39,9 +42,42 @@ function SignalRings() {
       aria-hidden
       className="pointer-events-none absolute inset-0 flex items-center justify-center"
     >
-      <div className="h-56 w-56 rounded-full border border-signal/10" />
-      <div className="absolute h-80 w-80 rounded-full border border-signal/10" />
-      <div className="absolute h-112 w-md rounded-full border border-signal/5" />
+      <div className="h-64 w-64 rounded-full border border-signal/10" />
+      <div className="absolute h-96 w-96 rounded-full border border-signal/10" />
+      <div className="absolute h-150 w-150 rounded-full border border-signal/5" />
+    </div>
+  );
+}
+
+// One of the three "what you can do here" cards below the hero. A plain
+// info card when href is omitted (the LoRa explainer), a card with a call
+// to action when it links somewhere (register, incident).
+function ConceptCard({
+  icon,
+  title,
+  description,
+  href,
+  linkLabel,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  href?: string;
+  linkLabel?: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-paper p-6 text-center shadow-sm">
+      {icon}
+      <h3 className="font-display text-lg font-medium">{title}</h3>
+      <p className="text-sm text-ink/70">{description}</p>
+      {href && linkLabel && (
+        <Link
+          href={href}
+          className="mt-1 text-sm font-medium text-signal hover:underline"
+        >
+          {linkLabel} ←
+        </Link>
+      )}
     </div>
   );
 }
@@ -54,15 +90,46 @@ export default async function Home() {
   const intro = await getSiteContent(HOMEPAGE_INTRO_KEY, DEFAULT_HOMEPAGE_INTRO);
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-1 flex-col gap-12 p-8">
-      <section className="relative flex flex-col items-center gap-4 overflow-hidden py-8 text-center">
+    <main className="mx-auto flex max-w-4xl flex-1 flex-col gap-16 p-8">
+      <section className="relative flex flex-col items-center gap-5 overflow-hidden py-12 text-center">
         <SignalRings />
-        <h1 className="relative font-display text-4xl font-medium">
+        <span className="relative text-sm font-medium tracking-wide text-signal">
+          סימולציית מערכת התרעה
+        </span>
+        <h1 className="relative font-display text-4xl font-medium sm:text-5xl">
           מערכת דפיברילטורים ניידים
         </h1>
         <p className="relative max-w-xl whitespace-pre-line text-ink/70">
           {intro}
         </p>
+        <div className="relative mt-2 flex flex-wrap items-center justify-center gap-3">
+          <ButtonLink href="/register">הרשמה כמתנדב</ButtonLink>
+          <ButtonLink href="/incident" variant="outline">
+            צפייה בדיווח מצוקה
+          </ButtonLink>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <ConceptCard
+          icon={<SignalIcon className="h-10 w-10 text-signal" />}
+          title="מה זה LoRa?"
+          description="טכנולוגיית רדיו לטווח ארוך וצריכת חשמל נמוכה, שמאפשרת שידור מיקום גם באזורים ללא כיסוי סלולרי."
+        />
+        <ConceptCard
+          icon={<RegisterIcon className="h-10 w-10 text-signal" />}
+          title="הרשמה למערכת"
+          description="בעלי דפיברילטור נייד או מכשיר LoRa יכולים להירשם בכמה שניות ולהצטרף לרשת המתנדבים."
+          href="/register"
+          linkLabel="להרשמה"
+        />
+        <ConceptCard
+          icon={<IncidentIcon className="h-10 w-10" />}
+          title="דיווח על מצוקה"
+          description="צפו כיצד המערכת מאתרת מתנדבים קרובים ומציגה מסלול רכיבה למכשיר הזמין ביותר."
+          href="/incident"
+          linkLabel="לצפייה בסימולציה"
+        />
       </section>
 
       <section className="flex flex-col gap-6">

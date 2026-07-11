@@ -3,6 +3,8 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/Button";
+import { SignalIcon } from "@/components/icons";
 
 const INPUT_CLASSES =
   "rounded-lg border border-line bg-paper px-3 py-2 text-ink transition-colors focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20";
@@ -38,10 +40,13 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-sm flex-1 flex-col justify-center p-8">
-      <div className="flex flex-col gap-6 rounded-xl border border-line bg-paper p-8 shadow-sm">
-        <h1 className="font-display text-2xl font-medium">כניסת מנהל</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <main className="mx-auto flex max-w-lg flex-1 flex-col justify-center p-8">
+      <div className="flex flex-col gap-6 rounded-xl border border-line bg-paper p-8 shadow-sm sm:p-10">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <SignalIcon className="h-10 w-10 text-signal" />
+          <h1 className="font-display text-2xl font-medium">כניסת מנהל</h1>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <label className="flex flex-col gap-1">
             <span className="text-sm text-ink/70">שם משתמש</span>
             <input
@@ -62,13 +67,9 @@ export default function AdminLoginPage() {
             />
           </label>
           {error && <p className="text-sm text-flare">{error}</p>}
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-lg bg-signal px-4 py-2 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
-          >
+          <Button type="submit" disabled={submitting}>
             {submitting ? "מתחבר..." : "כניסה"}
-          </button>
+          </Button>
         </form>
       </div>
     </main>
