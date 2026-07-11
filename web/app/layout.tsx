@@ -28,11 +28,21 @@ export default function RootLayout({
     // requires the whole site to default to Hebrew/RTL, and setting it once
     // at the root means every page and every browser-native control (form
     // inputs, checkboxes) inherits the correct direction automatically.
-    <html
-      lang="he"
-      dir="rtl"
-      className={`${heebo.variable} h-full antialiased`}
-    >
+    <html lang="he" dir="rtl" className={`${heebo.variable} h-full antialiased`}>
+      {/* WHY a plain <link>, not next/font/google, for these two: this
+          project's folder path is already long enough that Turbopack's dev
+          cache (which appends "[next]_internal_font_google_<name>_<hash>_
+          module_css_..." to it) exceeds Windows' MAX_PATH for any
+          longer-named font - it broke `next dev` (though not `next build`,
+          whose cache path is a few characters shorter) for both fonts
+          tried here. A plain stylesheet link skips that local-caching
+          pipeline entirely; React 19 hoists <link> tags rendered anywhere
+          in the tree into <head> automatically. Heebo's short name stays
+          under the limit, so it's unaffected and stays on next/font/google. */}
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      />
       <body className="min-h-full flex flex-col font-sans">
         <Nav />
         {children}

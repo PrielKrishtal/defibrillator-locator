@@ -4,20 +4,47 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// A device as the incident geo-fence returns it (only the fields the map
-// needs). Distance is used to label the nearest one.
+// WHY these are duplicated here instead of read from globals.css: Leaflet's
+// SVG renderer (circleMarker/circle) takes literal color strings for its
+// `color`/`fillColor` options, not CSS classes - these must be kept in sync
+// by hand with the --color-* tokens in globals.css. The divIcon below (the
+// one DOM-based marker) uses the real Tailwind classes instead.
+const COLOR = {
+  signal: "#175c52",
+  flare: "#c4432a",
+  beacon: "#b8862e",
+  line: "#dcd9d2",
+};
+
+// A device as the incident geo-fence returns it: in range, with its
+// distance from the incident.
 export type MapDevice = {
   deviceId: string;
   lat: number;
   lng: number;
   hasLora: boolean;
+  batteryLevel: number;
   distanceMeters: number;
+};
+
+// A device as the unfiltered /api/devices list returns it - no distance,
+// since it isn't necessarily near anything.
+export type AllDevice = {
+  deviceId: string;
+  lat: number;
+  lng: number;
+  hasLora: boolean;
+  batteryLevel: number;
 };
 
 type IncidentMapProps = {
   incident: { lat: number; lng: number };
   radiusMeters: number;
-  devices: MapDevice[];
+  devicesInRange: MapDevice[];
+  // The full seeded population, shown muted for context so the geofence's
+  // effect is visible (this device is in range, that one isn't) rather than
+  // only ever showing the devices that already passed the filter.
+  allDevices: AllDevice[];
   // The line drawn to the nearest device: either the OSRM cycling path once
   // it loads, or a straight [incident, device] fallback until then. Null
   // when there's no device in range to route to.
@@ -32,7 +59,8 @@ type IncidentMapProps = {
 export default function IncidentMap({
   incident,
   radiusMeters,
-  devices,
+  devicesInRange,
+  allDevices,
   routePath,
   onMapClick,
 }: IncidentMapProps) {
@@ -82,49 +110,95 @@ export default function IncidentMap({
     if (!overlay) return;
     overlay.clearLayers();
 
-    // Alert radius circle - the visible geo-fence.
+    // Alert radius circle - the visible geo-fence, in the system's own color.
     L.circle([incident.lat, incident.lng], {
       radius: radiusMeters,
-      color: "#2563eb",
+      color: COLOR.signal,
       weight: 1,
       fillOpacity: 0.05,
     }).addTo(overlay);
 
-    // Incident origin - red, the distress call location.
-    L.circleMarker([incident.lat, incident.lng], {
-      radius: 9,
-      color: "#dc2626",
-      fillColor: "#dc2626",
-      fillOpacity: 1,
-    })
-      .bindTooltip("נקודת המצוקה")
-      .addTo(overlay);
+    // Devices outside the radius, drawn muted first so the in-range set
+    // (drawn next, in full color) visibly stands out against them - this is
+    // what makes the geofence's effect legible rather than only ever
+    // showing devices that already passed the filter.
+    const inRangeIds = new Set(devicesInRange.map((d) => d.deviceId));
+    allDevices
+      .filter((d) => !inRangeIds.has(d.deviceId))
+      .forEach((device) => {
+        L.circleMarker([device.lat, device.lng], {
+          radius: 4,
+          color: COLOR.line,
+          fillColor: COLOR.line,
+          fillOpacity: 0.7,
+          weight: 1,
+        })
+          .bindTooltip(`${device.deviceId} - מחוץ לטווח`)
+          .addTo(overlay);
+      });
 
-    // Devices in range. The nearest (devices[0], since the API sorts by
-    // distance) is highlighted green because it's the one being routed to;
-    // the rest are blue. hasLora-vs-not icon differences come in Phase 8.
-    devices.forEach((device, index) => {
+    // Devices in range. The nearest (devicesInRange[0], since the API sorts
+    // by distance) gets a larger dot since it's the one being routed to.
+    // hasLora devices additionally get an outer ring in the beacon color -
+    // a broadcast-ring motif, not just a different color, so the LoRa/
+    // non-LoRa distinction reads even for someone who can't distinguish the
+    // two hues.
+    devicesInRange.forEach((device, index) => {
       const isNearest = index === 0;
+      const dotRadius = isNearest ? 8 : 6;
+
+      if (device.hasLora) {
+        L.circleMarker([device.lat, device.lng], {
+          radius: dotRadius + 4,
+          color: COLOR.beacon,
+          weight: 1.5,
+          fillOpacity: 0,
+        }).addTo(overlay);
+      }
+
       L.circleMarker([device.lat, device.lng], {
-        radius: isNearest ? 8 : 6,
-        color: isNearest ? "#16a34a" : "#2563eb",
-        fillColor: isNearest ? "#16a34a" : "#2563eb",
+        radius: dotRadius,
+        color: COLOR.signal,
+        fillColor: COLOR.signal,
         fillOpacity: 0.9,
       })
         .bindTooltip(
           `${device.deviceId} - ${Math.round(device.distanceMeters)} מ׳` +
-            (device.hasLora ? " (LoRa)" : "")
+            (device.hasLora ? " (LoRa)" : "") +
+            ` - סוללה ${device.batteryLevel}%`
         )
         .addTo(overlay);
     });
 
-    // The path to the nearest device. This same polyline shows either the
-    // straight-line fallback or the OSRM cycling route - the page swaps the
-    // coordinates in `routePath`, so the map just draws whatever it's given.
+    // The incident marker itself: an L.marker with a divIcon, not a
+    // circleMarker like everything else - it's the one element on the map
+    // with motion (the pulse ring), which needs real DOM/CSS, not SVG.
+    const incidentIcon = L.divIcon({
+      className: "incident-icon",
+      html: `
+        <div class="flex h-9 w-9 items-center justify-center">
+          <div class="relative h-4 w-4">
+            <div class="incident-pulse absolute inset-0 rounded-full bg-flare"></div>
+            <div class="absolute inset-0 rounded-full border-2 border-paper bg-flare"></div>
+          </div>
+        </div>
+      `,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+    });
+    L.marker([incident.lat, incident.lng], { icon: incidentIcon })
+      .bindTooltip("נקודת המצוקה")
+      .addTo(overlay);
+
+    // The path to the nearest device, in the beacon color - the same color
+    // as the LoRa ring, since both represent "a signal in motion toward
+    // someone." This same polyline shows either the straight-line fallback
+    // or the OSRM cycling route; the page swaps the coordinates in
+    // `routePath`, so the map just draws whatever it's given.
     if (routePath && routePath.length > 0) {
-      L.polyline(routePath, { color: "#ea580c", weight: 4 }).addTo(overlay);
+      L.polyline(routePath, { color: COLOR.beacon, weight: 4 }).addTo(overlay);
     }
-  }, [incident, radiusMeters, devices, routePath]);
+  }, [incident, radiusMeters, devicesInRange, allDevices, routePath]);
 
   return <div ref={containerRef} className="h-125 w-full rounded-lg" />;
 }
