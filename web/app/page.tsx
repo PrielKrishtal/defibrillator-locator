@@ -5,29 +5,50 @@ import {
   DEFAULT_HOMEPAGE_INTRO,
 } from "@/lib/site-content";
 import { ButtonLink } from "@/components/Button";
-import { SignalIcon, RegisterIcon, IncidentIcon } from "@/components/icons";
+import {
+  SignalIcon,
+  RegisterIcon,
+  IncidentIcon,
+  PinIcon,
+  SmsIcon,
+} from "@/components/icons";
 
-// Flow-diagram step, drawn as a bordered card. Kept as one small component
-// instead of repeating the same className string four times below.
-function FlowStep({ label }: { label: string }) {
+// A single icon+label node inside a flow-path card (no border of its own -
+// the card around it already has one, so two nested borders don't compete).
+function FlowMiniNode({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode;
+  label: string;
+}) {
   return (
-    <div className="rounded-lg border border-line bg-paper px-4 py-3 text-center text-sm shadow-sm">
-      {label}
+    <div className="flex flex-col items-center gap-1.5 text-center">
+      {icon}
+      <span className="text-xs text-ink/70">{label}</span>
     </div>
   );
 }
 
-// Arrow between two flow-diagram steps, in the beacon color - the same
-// color as the map's route line and LoRa ring, since all three represent
-// "a signal moving from one point to another." WHY "←" not "→": the page
-// is RTL, so reading order runs right-to-left - the arrow should point the
-// same way the boxes read, or the diagram looks backwards despite being
-// logically correct.
+// A short line + a small triangle, not just a lone arrow glyph - a bare "←"
+// character read as a stray typo at this size; pairing it with a connector
+// line makes it read as an actual flowchart connector.
 function FlowArrow() {
   return (
-    <span className="text-xl text-beacon" aria-hidden>
-      ←
-    </span>
+    <div className="flex items-center gap-1 text-beacon" aria-hidden>
+      <span className="text-xs">◀</span>
+      <span className="h-px w-5 bg-beacon" />
+    </div>
+  );
+}
+
+// One of the two "how the signal gets out" options - each groups two
+// connected steps inside a single bordered card.
+function FlowPathCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-center gap-2 rounded-xl border border-line bg-paper p-5 shadow-sm">
+      {children}
+    </div>
   );
 }
 
@@ -110,6 +131,58 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* WHY this section sits directly after the hero, not lower down: the
+          assignment requires the LoRa/distress-flow diagram on the homepage
+          specifically (not just somewhere on the site), so it stays close
+          to the top rather than trailing after the concept cards below. */}
+      <section className="flex flex-col items-center gap-6">
+        <h2 className="text-center font-display text-2xl font-medium">
+          איך קריאת מצוקה מגיעה למתנדב
+        </h2>
+
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-line bg-paper px-6 py-4 shadow-sm">
+            <IncidentIcon className="h-8 w-8" />
+            <span className="font-medium">קריאת מצוקה (דום לב)</span>
+          </div>
+
+          <div className="flex flex-col items-center text-beacon" aria-hidden>
+            <span className="h-6 w-px bg-beacon" />
+            <span className="text-xs">▾</span>
+          </div>
+
+          <div className="grid w-full max-w-2xl grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
+            <FlowPathCard>
+              <FlowMiniNode
+                icon={<SignalIcon className="h-7 w-7 text-signal" />}
+                label="LoRa / Meshtastic"
+              />
+              <FlowArrow />
+              <FlowMiniNode
+                icon={<PinIcon className="h-7 w-7 text-signal" />}
+                label="נקודת מיקום GPS"
+              />
+            </FlowPathCard>
+
+            <span className="justify-self-center rounded-full border border-line bg-paper px-3 py-1 text-xs font-medium text-ink/60">
+              או
+            </span>
+
+            <FlowPathCard>
+              <FlowMiniNode
+                icon={<SmsIcon className="h-7 w-7 text-beacon" />}
+                label="הודעת SMS"
+              />
+              <FlowArrow />
+              <FlowMiniNode
+                icon={<PinIcon className="h-7 w-7 text-beacon" />}
+                label="טלפון + מיקום"
+              />
+            </FlowPathCard>
+          </div>
+        </div>
+      </section>
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ConceptCard
           icon={<SignalIcon className="h-10 w-10 text-signal" />}
@@ -130,32 +203,6 @@ export default async function Home() {
           href="/incident"
           linkLabel="לצפייה בסימולציה"
         />
-      </section>
-
-      <section className="flex flex-col gap-6">
-        <h2 className="text-center font-display text-xl font-medium">
-          איך קריאת מצוקה מגיעה למתנדב
-        </h2>
-
-        <div className="flex flex-col items-center gap-4">
-          <FlowStep label="קריאת מצוקה (דום לב)" />
-
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <FlowStep label="רשת LoRa / Meshtastic" />
-              <FlowArrow />
-              <FlowStep label="נקודת מיקום GPS" />
-            </div>
-            <div className="flex items-center justify-center gap-2 text-sm text-ink/50">
-              <span>או</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <FlowStep label="הודעת SMS" />
-              <FlowArrow />
-              <FlowStep label="מספר טלפון + מיקום בעל המכשיר" />
-            </div>
-          </div>
-        </div>
       </section>
     </main>
   );

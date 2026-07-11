@@ -3,12 +3,28 @@
 import { useState, FormEvent } from "react";
 import { Button } from "@/components/Button";
 import { RegisterIcon } from "@/components/icons";
+import { BrandPanel } from "@/components/BrandPanel";
 
 // One shared input style instead of repeating the same long className four
 // times - not a full field component, since these inputs don't share any
 // behavior, only appearance.
 const INPUT_CLASSES =
   "rounded-lg border border-line bg-paper px-3 py-2 text-ink transition-colors focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20";
+
+// The page shell shared by both the form and the success screen: a
+// full-width split between the form column and the brand panel, instead of
+// a narrow card centered in an otherwise-empty page. Kept local to this
+// file (not extracted further) since only this page's two states need it.
+function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="flex flex-1 flex-col lg:grid lg:grid-cols-2">
+      <div className="flex flex-1 items-center justify-center p-8">
+        {children}
+      </div>
+      <BrandPanel />
+    </main>
+  );
+}
 
 // The registration form is a client component (not a Server Action) because
 // it needs to show inline validation and a success/error message without a
@@ -63,23 +79,25 @@ export default function RegisterPage() {
 
   if (status === "done") {
     return (
-      <main className="mx-auto flex max-w-lg flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-signal">
-          <span className="text-2xl text-signal" aria-hidden>
-            ✓
-          </span>
+      <AuthLayout>
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-signal">
+            <span className="text-2xl text-signal" aria-hidden>
+              ✓
+            </span>
+          </div>
+          <h1 className="font-display text-2xl font-medium">
+            ההרשמה נקלטה בהצלחה
+          </h1>
+          <p className="text-ink/70">תודה שהצטרפתם למערכת.</p>
         </div>
-        <h1 className="font-display text-2xl font-medium">
-          ההרשמה נקלטה בהצלחה
-        </h1>
-        <p className="text-ink/70">תודה שהצטרפתם למערכת.</p>
-      </main>
+      </AuthLayout>
     );
   }
 
   return (
-    <main className="mx-auto flex max-w-lg flex-1 flex-col justify-center p-8">
-      <div className="flex flex-col gap-6 rounded-xl border border-line bg-paper p-8 shadow-sm sm:p-10">
+    <AuthLayout>
+      <div className="flex w-full max-w-md flex-col gap-6 rounded-xl border border-line bg-paper p-8 shadow-sm sm:p-10">
         <div className="flex flex-col items-center gap-3 text-center">
           <RegisterIcon className="h-10 w-10 text-signal" />
           <h1 className="font-display text-3xl font-medium">הרשמה למערכת</h1>
@@ -158,6 +176,6 @@ export default function RegisterPage() {
           </Button>
         </form>
       </div>
-    </main>
+    </AuthLayout>
   );
 }

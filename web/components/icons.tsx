@@ -46,3 +46,32 @@ export function IncidentIcon({ className }: { className?: string }) {
     </span>
   );
 }
+
+export function PinIcon({ className }: { className?: string }) {
+  // A map-pin teardrop: the GPS point a distress call resolves to.
+  return (
+    <svg viewBox="0 0 48 48" className={className} fill="none" aria-hidden>
+      <path
+        d="M24 6c-7.7 0-14 6.3-14 14 0 10 14 22 14 22s14-12 14-22c0-7.7-6.3-14-14-14z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <circle cx="24" cy="20" r="5" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+export function SmsIcon({ className }: { className?: string }) {
+  // A message bubble: the SMS fallback path when there's no LoRa coverage.
+  return (
+    <svg viewBox="0 0 48 48" className={className} fill="none" aria-hidden>
+      <path
+        d="M8 12a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H19l-8 7v-7h-3a4 4 0 0 1-4-4V12z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
