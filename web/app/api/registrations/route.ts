@@ -48,7 +48,11 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // WHY log the real error but return a generic one: error.message from
+    // Supabase can include internal detail (column/constraint names) that
+    // has no business reaching an anonymous caller of a public endpoint.
+    console.error("Failed to insert registration:", error.message);
+    return NextResponse.json({ error: "Registration failed" }, { status: 500 });
   }
   return NextResponse.json({ ok: true }, { status: 201 });
 }
@@ -64,7 +68,11 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Failed to list registrations:", error.message);
+    return NextResponse.json(
+      { error: "Failed to load registrations" },
+      { status: 500 }
+    );
   }
   return NextResponse.json({ registrations: data });
 }

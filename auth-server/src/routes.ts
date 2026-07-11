@@ -65,23 +65,32 @@ authRouter.post("/login", async (req: Request, res: Response) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  // Tidy this admin's expired token rows before issuing a fresh one.
-  await deleteExpiredForAdmin(admin.id);
+  // WHY the try/catch here specifically: storeJti/deleteExpiredForAdmin throw
+  // on a Supabase failure, and Express 4 doesn't catch rejections thrown from
+  // an async route handler on its own - without this, a DB hiccup here would
+  // leave the request hanging with no response at all instead of a clean 500.
+  try {
+    // Tidy this admin's expired token rows before issuing a fresh one.
+    await deleteExpiredForAdmin(admin.id);
 
-  // crypto.randomUUID gives a unique id for this specific refresh token, so
-  // it can be revoked individually without affecting other sessions.
-  const jti = crypto.randomUUID();
-  const accessToken = signAccessToken({
-    adminId: admin.id,
-    username: admin.username,
-  });
-  const refreshToken = signRefreshToken({ adminId: admin.id, jti });
-  await storeJti(admin.id, jti, new Date(Date.now() + REFRESH_TOKEN_TTL_MS));
+    // crypto.randomUUID gives a unique id for this specific refresh token, so
+    // it can be revoked individually without affecting other sessions.
+    const jti = crypto.randomUUID();
+    const accessToken = signAccessToken({
+      adminId: admin.id,
+      username: admin.username,
+    });
+    const refreshToken = signRefreshToken({ adminId: admin.id, jti });
+    await storeJti(admin.id, jti, new Date(Date.now() + REFRESH_TOKEN_TTL_MS));
 
-  res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions());
-  // Access token goes in the body -> the frontend holds it in memory. The
-  // refresh token is never exposed to JS; it rides in the httpOnly cookie.
-  return res.json({ accessToken });
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions());
+    // Access token goes in the body -> the frontend holds it in memory. The
+    // refresh token is never exposed to JS; it rides in the httpOnly cookie.
+    return res.json({ accessToken });
+  } catch (err) {
+    console.error("Login failed after credential check:", err);
+    return res.status(500).json({ error: "Login failed" });
+  }
 });
 
 authRouter.post("/refresh", async (req: Request, res: Response) => {
@@ -99,29 +108,34 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
       .json({ error: "Invalid or expired refresh token" });
   }
 
-  // Signature checks out, but the token may have been revoked at logout -
-  // its jti must still be in the store.
-  const stillValid = await isJtiValid(payload.jti);
-  if (!stillValid) {
-    return res.status(401).json({ error: "Refresh token has been revoked" });
-  }
+  try {
+    // Signature checks out, but the token may have been revoked at logout -
+    // its jti must still be in the store.
+    const stillValid = await isJtiValid(payload.jti);
+    if (!stillValid) {
+      return res.status(401).json({ error: "Refresh token has been revoked" });
+    }
 
-  // Look the admin up by id so the new access token's username is authoritative
-  // (rather than trusting a username copied into the refresh token).
-  const { data: admin, error } = await supabase
-    .from("admins")
-    .select("id, username")
-    .eq("id", payload.adminId)
-    .maybeSingle();
-  if (error || !admin) {
-    return res.status(401).json({ error: "Admin no longer exists" });
-  }
+    // Look the admin up by id so the new access token's username is
+    // authoritative (rather than trusting a username copied into the token).
+    const { data: admin, error } = await supabase
+      .from("admins")
+      .select("id, username")
+      .eq("id", payload.adminId)
+      .maybeSingle();
+    if (error || !admin) {
+      return res.status(401).json({ error: "Admin no longer exists" });
+    }
 
-  const accessToken = signAccessToken({
-    adminId: admin.id,
-    username: admin.username,
-  });
-  return res.json({ accessToken });
+    const accessToken = signAccessToken({
+      adminId: admin.id,
+      username: admin.username,
+    });
+    return res.json({ accessToken });
+  } catch (err) {
+    console.error("Refresh failed:", err);
+    return res.status(500).json({ error: "Refresh failed" });
+  }
 });
 
 authRouter.post("/logout", async (req: Request, res: Response) => {
