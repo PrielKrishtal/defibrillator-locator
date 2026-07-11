@@ -15,15 +15,40 @@ type Registration = {
   created_at: string;
 };
 
+type SaveStatus = "idle" | "saving" | "done" | "error";
+
+const INPUT_CLASSES =
+  "rounded-lg border border-line bg-paper px-3 py-2 text-ink transition-colors focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20";
+
+// One shared "save button + status message" bit of markup, since the radius
+// and intro-text forms both need exactly this after their own field.
+function SaveButton({ status }: { status: SaveStatus }) {
+  return (
+    <div className="flex items-center gap-3">
+      <button
+        type="submit"
+        disabled={status === "saving"}
+        className="rounded-lg bg-signal px-4 py-2 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        שמירה
+      </button>
+      {status === "done" && <span className="text-sm text-signal">נשמר</span>}
+      {status === "error" && (
+        <span className="text-sm text-flare">שגיאה בשמירה</span>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const { accessToken, isLoading, logout, authFetch } = useAuth();
   const router = useRouter();
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [radiusMeters, setRadiusMeters] = useState("");
-  const [radiusStatus, setRadiusStatus] = useState("");
+  const [radiusStatus, setRadiusStatus] = useState<SaveStatus>("idle");
   const [introText, setIntroText] = useState("");
-  const [introStatus, setIntroStatus] = useState("");
+  const [introStatus, setIntroStatus] = useState<SaveStatus>("idle");
 
   // WHY redirect here, not in app/admin/layout.tsx: the layout also wraps
   // /admin/login, and guarding there would redirect the login page to
@@ -34,24 +59,38 @@ export default function AdminDashboardPage() {
     }
   }, [isLoading, accessToken, router]);
 
+  // WHY authFetch is a real dependency here, not suppressed: authFetch is a
+  // fresh closure every AuthProvider render, and it reads the current
+  // accessToken from that closure. An empty dependency array would freeze
+  // this callback to whichever authFetch existed at the very first render -
+  // before login even resolves - so every request it makes would carry no
+  // Authorization header at all and silently 401 forever.
   const loadRegistrations = useCallback(async () => {
     const res = await authFetch("/api/registrations");
     if (res.ok) {
       const body = await res.json();
       setRegistrations(body.registrations);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authFetch]);
 
   useEffect(() => {
     if (!accessToken) return;
-    loadRegistrations();
-    fetch("/api/settings/radius")
-      .then((r) => r.json())
-      .then((b) => setRadiusMeters(String(b.radiusMeters)));
-    fetch("/api/site-content/homepage_intro")
-      .then((r) => r.json())
-      .then((b) => setIntroText(b.value));
+
+    // WHY a named inner function: calling setState as the effect's own
+    // first synchronous action (as `loadRegistrations()` directly would be)
+    // is flagged by React's rules. Wrapping the whole load sequence means
+    // every setState call happens after an awaited fetch, the correct async
+    // pattern.
+    async function loadDashboardData() {
+      await loadRegistrations();
+      const radiusRes = await fetch("/api/settings/radius");
+      const radiusBody = await radiusRes.json();
+      setRadiusMeters(String(radiusBody.radiusMeters));
+      const introRes = await fetch("/api/site-content/homepage_intro");
+      const introBody = await introRes.json();
+      setIntroText(introBody.value);
+    }
+    loadDashboardData();
   }, [accessToken, loadRegistrations]);
 
   async function handleDelete(id: number) {
@@ -65,24 +104,24 @@ export default function AdminDashboardPage() {
 
   async function handleRadiusSave(e: FormEvent) {
     e.preventDefault();
-    setRadiusStatus("שומר...");
+    setRadiusStatus("saving");
     const res = await authFetch("/api/settings/radius", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ radiusMeters: Number(radiusMeters) }),
     });
-    setRadiusStatus(res.ok ? "נשמר" : "שגיאה בשמירה");
+    setRadiusStatus(res.ok ? "done" : "error");
   }
 
   async function handleIntroSave(e: FormEvent) {
     e.preventDefault();
-    setIntroStatus("שומר...");
+    setIntroStatus("saving");
     const res = await authFetch("/api/site-content/homepage_intro", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ value: introText }),
     });
-    setIntroStatus(res.ok ? "נשמר" : "שגיאה בשמירה");
+    setIntroStatus(res.ok ? "done" : "error");
   }
 
   async function handleLogout() {
@@ -97,51 +136,59 @@ export default function AdminDashboardPage() {
   if (isLoading || !accessToken) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
-        <p className="text-zinc-500">טוען...</p>
+        <p className="text-ink/50">טוען...</p>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-1 flex-col gap-10 p-8">
+    <main className="mx-auto flex max-w-3xl flex-1 flex-col gap-8 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">לוח בקרה למנהל</h1>
+        <h1 className="font-display text-3xl font-medium">לוח בקרה למנהל</h1>
         <button
           onClick={handleLogout}
-          className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
+          className="rounded-lg border border-line px-3 py-1.5 text-sm transition-colors hover:bg-line/30"
         >
           התנתקות
         </button>
       </div>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">נרשמים ({registrations.length})</h2>
+      <section className="flex flex-col gap-4 rounded-xl border border-line bg-paper p-6 shadow-sm">
+        <h2 className="font-display text-lg font-medium">
+          נרשמים ({registrations.length})
+        </h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] text-sm">
+          <table className="w-full min-w-150 text-sm">
             <thead>
-              <tr className="border-b border-zinc-300 text-right dark:border-zinc-700">
-                <th className="p-2">שם</th>
-                <th className="p-2">טלפון</th>
-                <th className="p-2">דפיברילטור</th>
-                <th className="p-2">LoRa</th>
-                <th className="p-2">מזהה LoRa</th>
+              <tr className="border-b border-line text-right">
+                <th className="p-2 font-medium text-ink/70">שם</th>
+                <th className="p-2 font-medium text-ink/70">טלפון</th>
+                <th className="p-2 font-medium text-ink/70">דפיברילטור</th>
+                <th className="p-2 font-medium text-ink/70">LoRa</th>
+                <th className="p-2 font-medium text-ink/70">מזהה LoRa</th>
                 <th className="p-2"></th>
               </tr>
             </thead>
             <tbody>
               {registrations.map((r) => (
-                <tr key={r.id} className="border-b border-zinc-200 dark:border-zinc-800">
+                <tr key={r.id} className="border-b border-line/50">
                   <td className="p-2">
                     {r.first_name} {r.last_name ?? ""}
                   </td>
-                  <td className="p-2">{r.mobile}</td>
-                  <td className="p-2">{r.has_defibrillator ? "כן" : "לא"}</td>
-                  <td className="p-2">{r.has_lora ? "כן" : "לא"}</td>
-                  <td className="p-2">{r.lora_id ?? "-"}</td>
+                  <td className="p-2 font-mono">{r.mobile}</td>
+                  <td className="p-2">
+                    <YesNo value={r.has_defibrillator} />
+                  </td>
+                  <td className="p-2">
+                    <YesNo value={r.has_lora} />
+                  </td>
+                  <td className="p-2 font-mono text-ink/70">
+                    {r.lora_id ?? "-"}
+                  </td>
                   <td className="p-2">
                     <button
                       onClick={() => handleDelete(r.id)}
-                      className="text-red-600 hover:underline dark:text-red-400"
+                      className="text-flare hover:underline"
                     >
                       מחיקה
                     </button>
@@ -150,7 +197,7 @@ export default function AdminDashboardPage() {
               ))}
               {registrations.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-4 text-center text-zinc-500">
+                  <td colSpan={6} className="p-4 text-center text-ink/50">
                     אין נרשמים עדיין
                   </td>
                 </tr>
@@ -160,46 +207,46 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">רדיוס הסימולטור (מטרים)</h2>
+      <section className="flex flex-col gap-3 rounded-xl border border-line bg-paper p-6 shadow-sm">
+        <h2 className="font-display text-lg font-medium">
+          רדיוס הסימולטור (מטרים)
+        </h2>
         <form onSubmit={handleRadiusSave} className="flex items-center gap-3">
           <input
             type="number"
             min="1"
             value={radiusMeters}
             onChange={(e) => setRadiusMeters(e.target.value)}
-            className="w-32 rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            className={`w-32 font-mono ${INPUT_CLASSES}`}
           />
-          <button
-            type="submit"
-            className="rounded bg-zinc-900 px-4 py-2 text-white dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            שמירה
-          </button>
-          {radiusStatus && <span className="text-sm text-zinc-500">{radiusStatus}</span>}
+          <SaveButton status={radiusStatus} />
         </form>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-medium">טקסט הסבר בעמוד הבית</h2>
+      <section className="flex flex-col gap-3 rounded-xl border border-line bg-paper p-6 shadow-sm">
+        <h2 className="font-display text-lg font-medium">
+          טקסט הסבר בעמוד הבית
+        </h2>
         <form onSubmit={handleIntroSave} className="flex flex-col gap-3">
           <textarea
             rows={5}
             value={introText}
             onChange={(e) => setIntroText(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            className={INPUT_CLASSES}
           />
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              className="rounded bg-zinc-900 px-4 py-2 text-white dark:bg-zinc-100 dark:text-zinc-900"
-            >
-              שמירה
-            </button>
-            {introStatus && <span className="text-sm text-zinc-500">{introStatus}</span>}
-          </div>
+          <SaveButton status={introStatus} />
         </form>
       </section>
     </main>
+  );
+}
+
+// כן in the system color, לא muted - the same "signal = active/true" language
+// as the map's device markers, rather than plain identical-weight text.
+function YesNo({ value }: { value: boolean }) {
+  return value ? (
+    <span className="font-medium text-signal">כן</span>
+  ) : (
+    <span className="text-ink/40">לא</span>
   );
 }

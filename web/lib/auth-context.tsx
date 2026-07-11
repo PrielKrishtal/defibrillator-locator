@@ -66,12 +66,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // WHY run this once on mount: it's the "silent refresh flow" from
-    // DEFIBRILLATOR_PROJECT_BRIEF.md §8 Phase 6 - if the admin already has a
-    // valid refresh cookie from an earlier session, this restores them
-    // without asking for a password again.
-    refreshSilently().finally(() => setIsLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // WHY a named inner function, not just `refreshSilently().finally(...)`
+    // directly in the effect body: calling setState as the effect's own
+    // first synchronous action is flagged by React's rules (it can trigger
+    // cascading renders). Wrapping it means the setState calls only happen
+    // after the awaited work resolves, which is the correct async pattern.
+    async function attemptSilentRefresh() {
+      // WHY run this once on mount: it's the "silent refresh flow" from
+      // DEFIBRILLATOR_PROJECT_BRIEF.md §8 Phase 6 - if the admin already has
+      // a valid refresh cookie from an earlier session, this restores them
+      // without asking for a password again.
+      await refreshSilently();
+      setIsLoading(false);
+    }
+    attemptSilentRefresh();
   }, []);
 
   async function login(username: string, password: string): Promise<LoginResult> {

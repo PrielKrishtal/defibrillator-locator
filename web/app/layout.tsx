@@ -38,7 +38,14 @@ export default function RootLayout({
           tried here. A plain stylesheet link skips that local-caching
           pipeline entirely; React 19 hoists <link> tags rendered anywhere
           in the tree into <head> automatically. Heebo's short name stays
-          under the limit, so it's unaffected and stays on next/font/google. */}
+          under the limit, so it's unaffected and stays on next/font/google.
+
+          The lint rule below (no-page-custom-font) assumes the Pages
+          Router, where a font <link> outside pages/_document.js really
+          would only load on one page. This root layout is the App Router's
+          equivalent of _document.js - it wraps every route exactly once -
+          so that risk doesn't apply here. */}
+      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap"

@@ -4,6 +4,9 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
+const INPUT_CLASSES =
+  "rounded-lg border border-line bg-paper px-3 py-2 text-ink transition-colors focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20";
+
 export default function AdminLoginPage() {
   const { login, accessToken, isLoading } = useAuth();
   const router = useRouter();
@@ -35,39 +38,39 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-sm flex-1 flex-col justify-center gap-6 p-8">
-      <h1 className="text-2xl font-semibold">כניסת מנהל</h1>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">שם משתמש</span>
-          <input
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">סיסמה</span>
-          <input
-            required
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-          />
-        </label>
-        {error && (
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-        )}
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded bg-zinc-900 px-4 py-2 text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          {submitting ? "מתחבר..." : "כניסה"}
-        </button>
-      </form>
+    <main className="mx-auto flex max-w-sm flex-1 flex-col justify-center p-8">
+      <div className="flex flex-col gap-6 rounded-xl border border-line bg-paper p-8 shadow-sm">
+        <h1 className="font-display text-2xl font-medium">כניסת מנהל</h1>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-ink/70">שם משתמש</span>
+            <input
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className={INPUT_CLASSES}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-ink/70">סיסמה</span>
+            <input
+              required
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={INPUT_CLASSES}
+            />
+          </label>
+          {error && <p className="text-sm text-flare">{error}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-lg bg-signal px-4 py-2 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
+          >
+            {submitting ? "מתחבר..." : "כניסה"}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }
