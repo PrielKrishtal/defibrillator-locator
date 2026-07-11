@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import { Button } from "@/components/Button";
+import { RegisterIcon } from "@/components/icons";
 
 // One shared input style instead of repeating the same long className four
 // times - not a full field component, since these inputs don't share any
@@ -61,8 +63,8 @@ export default function RegisterPage() {
 
   if (status === "done") {
     return (
-      <main className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-signal">
+      <main className="mx-auto flex max-w-lg flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-signal">
           <span className="text-2xl text-signal" aria-hidden>
             ✓
           </span>
@@ -76,83 +78,86 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-md flex-1 flex-col gap-6 p-8">
-      <h1 className="font-display text-3xl font-medium">הרשמה למערכת</h1>
+    <main className="mx-auto flex max-w-lg flex-1 flex-col justify-center p-8">
+      <div className="flex flex-col gap-6 rounded-xl border border-line bg-paper p-8 shadow-sm sm:p-10">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <RegisterIcon className="h-10 w-10 text-signal" />
+          <h1 className="font-display text-3xl font-medium">הרשמה למערכת</h1>
+        </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-ink/70">שם פרטי *</span>
-          <input
-            required
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className={INPUT_CLASSES}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-ink/70">שם משפחה</span>
-          <input
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className={INPUT_CLASSES}
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-ink/70">מספר טלפון נייד *</span>
-          <input
-            required
-            type="tel"
-            value={mobile}
-            onChange={(e) => setMobile(e.target.value)}
-            className={INPUT_CLASSES}
-          />
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={hasDefibrillator}
-            onChange={(e) => setHasDefibrillator(e.target.checked)}
-            className="h-4 w-4 accent-signal"
-          />
-          <span className="text-sm">יש לי דפיברילטור נייד</span>
-        </label>
-
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={hasLora}
-            onChange={(e) => setHasLora(e.target.checked)}
-            className="h-4 w-4 accent-signal"
-          />
-          <span className="text-sm">יש לי מכשיר LoRa</span>
-        </label>
-
-        {hasLora && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-ink/70">מזהה LoRa</span>
+            <span className="text-sm text-ink/70">שם פרטי *</span>
             <input
-              value={loraId}
-              onChange={(e) => setLoraId(e.target.value)}
-              className={`${INPUT_CLASSES} font-mono`}
+              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className={INPUT_CLASSES}
             />
           </label>
-        )}
 
-        {status === "error" && (
-          <p className="text-sm text-flare">{errorMessage}</p>
-        )}
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-ink/70">שם משפחה</span>
+            <input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className={INPUT_CLASSES}
+            />
+          </label>
 
-        <button
-          type="submit"
-          disabled={status === "submitting"}
-          className="rounded-lg bg-signal px-4 py-2 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          {status === "submitting" ? "שולח..." : "הרשמה"}
-        </button>
-      </form>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-ink/70">מספר טלפון נייד *</span>
+            <input
+              required
+              type="tel"
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              className={INPUT_CLASSES}
+            />
+          </label>
+
+          <div className="flex flex-col gap-3 rounded-lg border border-line/60 p-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={hasDefibrillator}
+                onChange={(e) => setHasDefibrillator(e.target.checked)}
+                className="h-4 w-4 accent-signal"
+              />
+              <span className="text-sm">יש לי דפיברילטור נייד</span>
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={hasLora}
+                onChange={(e) => setHasLora(e.target.checked)}
+                className="h-4 w-4 accent-signal"
+              />
+              <span className="text-sm">יש לי מכשיר LoRa</span>
+            </label>
+
+            {hasLora && (
+              <label className="flex flex-col gap-1 pt-1">
+                <span className="text-sm text-ink/70">מזהה LoRa</span>
+                <input
+                  value={loraId}
+                  onChange={(e) => setLoraId(e.target.value)}
+                  className={`${INPUT_CLASSES} font-mono`}
+                />
+              </label>
+            )}
+          </div>
+
+          {status === "error" && (
+            <p className="text-sm text-flare">{errorMessage}</p>
+          )}
+
+          <Button type="submit" disabled={status === "submitting"}>
+            {status === "submitting" ? "שולח..." : "הרשמה"}
+          </Button>
+        </form>
+      </div>
     </main>
   );
 }

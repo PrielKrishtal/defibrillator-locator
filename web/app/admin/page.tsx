@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/Button";
 
 type Registration = {
   id: number;
@@ -25,13 +26,9 @@ const INPUT_CLASSES =
 function SaveButton({ status }: { status: SaveStatus }) {
   return (
     <div className="flex items-center gap-3">
-      <button
-        type="submit"
-        disabled={status === "saving"}
-        className="rounded-lg bg-signal px-4 py-2 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={status === "saving"}>
         שמירה
-      </button>
+      </Button>
       {status === "done" && <span className="text-sm text-signal">נשמר</span>}
       {status === "error" && (
         <span className="text-sm text-flare">שגיאה בשמירה</span>
@@ -142,15 +139,12 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-1 flex-col gap-8 p-8">
+    <main className="mx-auto flex max-w-4xl flex-1 flex-col gap-8 p-8">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-medium">לוח בקרה למנהל</h1>
-        <button
-          onClick={handleLogout}
-          className="rounded-lg border border-line px-3 py-1.5 text-sm transition-colors hover:bg-line/30"
-        >
+        <Button variant="outline" onClick={handleLogout} className="text-sm">
           התנתקות
-        </button>
+        </Button>
       </div>
 
       <section className="flex flex-col gap-4 rounded-xl border border-line bg-paper p-6 shadow-sm">
