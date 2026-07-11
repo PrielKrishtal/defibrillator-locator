@@ -42,10 +42,32 @@ function randomPointNear(centerLat: number, centerLng: number, maxRadiusMeters: 
 
 // Tel Aviv's coastline sits only ~1.5km west of the scatter center, so a
 // plain uniform disk regularly lands points in the Mediterranean - visibly
-// wrong for "portable defibrillator devices" on the map. This is a flat
-// approximation of the coastline (it runs close to straight north-south
-// across this small an area), good enough for a simulator's seed data.
-const MIN_LAND_LNG = 34.77;
+// wrong for "portable defibrillator devices" on the map.
+//
+// WHY a latitude-dependent line, not a flat longitude cutoff (two flat
+// values were tried first - 34.77, then 34.80 - and both still let points
+// land in the sea near the scatter's northern edge): the coast angles
+// northeast up the Sharon plain, not straight north-south. Real reference
+// points confirm a consistent slope across the whole scatter radius (see
+// brief §11, 2026-07-12): Bat Yam (south) sits at ~34.746, central Tel Aviv
+// at ~34.766, Ga'ash Beach (north, near the scatter's edge) at ~34.825.
+// Interpolating a line through these fits all three well, unlike a single
+// number that can only ever be correct at one latitude.
+const COASTLINE_REFERENCE_SOUTH = { lat: 32.02, lng: 34.746 }; // Bat Yam
+const COASTLINE_REFERENCE_NORTH = { lat: 32.248, lng: 34.825 }; // Ga'ash Beach
+// WHY a margin on top of the interpolated line at all: these are named-place
+// reference points, not surveyed coastline vertices, so a small buffer
+// absorbs that imprecision rather than sitting exactly on the estimated edge.
+const COASTLINE_SAFETY_MARGIN_DEG = 0.015; // roughly 1.5km
+
+function minLandLngAt(lat: number): number {
+  const slope =
+    (COASTLINE_REFERENCE_NORTH.lng - COASTLINE_REFERENCE_SOUTH.lng) /
+    (COASTLINE_REFERENCE_NORTH.lat - COASTLINE_REFERENCE_SOUTH.lat);
+  const interpolatedCoastLng =
+    COASTLINE_REFERENCE_SOUTH.lng + slope * (lat - COASTLINE_REFERENCE_SOUTH.lat);
+  return interpolatedCoastLng + COASTLINE_SAFETY_MARGIN_DEG;
+}
 
 // WHY retry instead of clamping a too-far-west point to the coastline:
 // clamping would pile every rejected point along one straight edge; a
@@ -58,7 +80,7 @@ function randomLandPointNear(
 ) {
   for (let attempt = 0; attempt < 50; attempt++) {
     const point = randomPointNear(centerLat, centerLng, maxRadiusMeters);
-    if (point.lng >= MIN_LAND_LNG) {
+    if (point.lng >= minLandLngAt(point.lat)) {
       return point;
     }
   }
