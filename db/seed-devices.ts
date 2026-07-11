@@ -40,6 +40,35 @@ function randomPointNear(centerLat: number, centerLng: number, maxRadiusMeters: 
   };
 }
 
+// Tel Aviv's coastline sits only ~1.5km west of the scatter center, so a
+// plain uniform disk regularly lands points in the Mediterranean - visibly
+// wrong for "portable defibrillator devices" on the map. This is a flat
+// approximation of the coastline (it runs close to straight north-south
+// across this small an area), good enough for a simulator's seed data.
+const MIN_LAND_LNG = 34.77;
+
+// WHY retry instead of clamping a too-far-west point to the coastline:
+// clamping would pile every rejected point along one straight edge; a
+// fresh random redraw keeps the "spread evenly over an area" property from
+// randomPointNear intact.
+function randomLandPointNear(
+  centerLat: number,
+  centerLng: number,
+  maxRadiusMeters: number
+) {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const point = randomPointNear(centerLat, centerLng, maxRadiusMeters);
+    if (point.lng >= MIN_LAND_LNG) {
+      return point;
+    }
+  }
+  // WHY a fallback at all: 50 rejected attempts in a row essentially never
+  // happens (most of the disk is east of the coast), but returning the
+  // exact center is a safe, always-on-land default if it somehow did,
+  // rather than looping forever.
+  return { lat: centerLat, lng: centerLng };
+}
+
 function randomDeviceId() {
   // WHY: 4 random bytes as hex gives a short, DevEUI-looking ID
   // ("SIM-A1B2C3D4") without needing a real LoRa allocation.
@@ -54,7 +83,7 @@ function randomRecentDate(maxHoursAgo: number) {
 function buildSimulatedDevices() {
   const devices = [];
   for (let i = 0; i < DEVICE_COUNT; i++) {
-    const { lat, lng } = randomPointNear(CENTER_LAT, CENTER_LNG, MAX_RADIUS_METERS);
+    const { lat, lng } = randomLandPointNear(CENTER_LAT, CENTER_LNG, MAX_RADIUS_METERS);
     devices.push({
       deviceId: randomDeviceId(),
       // WHY: null, not a real registrations.id - these are simulated
