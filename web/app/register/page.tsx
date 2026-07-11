@@ -2,6 +2,12 @@
 
 import { useState, FormEvent } from "react";
 
+// One shared input style instead of repeating the same long className four
+// times - not a full field component, since these inputs don't share any
+// behavior, only appearance.
+const INPUT_CLASSES =
+  "rounded-lg border border-line bg-paper px-3 py-2 text-ink transition-colors focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20";
+
 // The registration form is a client component (not a Server Action) because
 // it needs to show inline validation and a success/error message without a
 // full page reload, and because §6 names this as calling a specific API
@@ -56,44 +62,51 @@ export default function RegisterPage() {
   if (status === "done") {
     return (
       <main className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <h1 className="text-2xl font-semibold">ההרשמה נקלטה בהצלחה</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">תודה שהצטרפתם למערכת.</p>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-signal">
+          <span className="text-2xl text-signal" aria-hidden>
+            ✓
+          </span>
+        </div>
+        <h1 className="font-display text-2xl font-medium">
+          ההרשמה נקלטה בהצלחה
+        </h1>
+        <p className="text-ink/70">תודה שהצטרפתם למערכת.</p>
       </main>
     );
   }
 
   return (
     <main className="mx-auto flex max-w-md flex-1 flex-col gap-6 p-8">
-      <h1 className="text-2xl font-semibold">הרשמה למערכת</h1>
+      <h1 className="font-display text-3xl font-medium">הרשמה למערכת</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
-          <span className="text-sm">שם פרטי *</span>
+          <span className="text-sm text-ink/70">שם פרטי *</span>
           <input
             required
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            className={INPUT_CLASSES}
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm">שם משפחה</span>
+          <span className="text-sm text-ink/70">שם משפחה</span>
           <input
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            className={INPUT_CLASSES}
           />
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm">מספר טלפון נייד *</span>
+          <span className="text-sm text-ink/70">מספר טלפון נייד *</span>
           <input
             required
             type="tel"
             value={mobile}
             onChange={(e) => setMobile(e.target.value)}
-            className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+            className={INPUT_CLASSES}
           />
         </label>
 
@@ -102,6 +115,7 @@ export default function RegisterPage() {
             type="checkbox"
             checked={hasDefibrillator}
             onChange={(e) => setHasDefibrillator(e.target.checked)}
+            className="h-4 w-4 accent-signal"
           />
           <span className="text-sm">יש לי דפיברילטור נייד</span>
         </label>
@@ -111,29 +125,30 @@ export default function RegisterPage() {
             type="checkbox"
             checked={hasLora}
             onChange={(e) => setHasLora(e.target.checked)}
+            className="h-4 w-4 accent-signal"
           />
           <span className="text-sm">יש לי מכשיר LoRa</span>
         </label>
 
         {hasLora && (
           <label className="flex flex-col gap-1">
-            <span className="text-sm">מזהה LoRa</span>
+            <span className="text-sm text-ink/70">מזהה LoRa</span>
             <input
               value={loraId}
               onChange={(e) => setLoraId(e.target.value)}
-              className="rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className={`${INPUT_CLASSES} font-mono`}
             />
           </label>
         )}
 
         {status === "error" && (
-          <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+          <p className="text-sm text-flare">{errorMessage}</p>
         )}
 
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="rounded bg-zinc-900 px-4 py-2 text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+          className="rounded-lg bg-signal px-4 py-2 font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {status === "submitting" ? "שולח..." : "הרשמה"}
         </button>

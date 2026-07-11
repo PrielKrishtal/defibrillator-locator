@@ -72,8 +72,15 @@ export default function IncidentMap({
   const overlayRef = useRef<L.LayerGroup | null>(null);
   // The click callback lives in a ref so the map's click handler (bound once
   // on mount) always calls the latest version without re-creating the map.
+  // WHY updated in an effect, not directly in the render body: mutating a
+  // ref while rendering is unsafe under React's rules (a render can be
+  // discarded without committing, but the mutation would already have
+  // happened) - an effect with no dependency array runs after every commit
+  // instead, which is the safe equivalent of "always keep this current."
   const onMapClickRef = useRef(onMapClick);
-  onMapClickRef.current = onMapClick;
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  });
 
   // Mount: create the map once. The empty dep array is deliberate - we never
   // want to tear down and rebuild the whole map on a prop change.
