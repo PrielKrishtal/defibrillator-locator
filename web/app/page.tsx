@@ -3,6 +3,8 @@ import {
   getSiteContent,
   HOMEPAGE_INTRO_KEY,
   DEFAULT_HOMEPAGE_INTRO,
+  WHY_VOLUNTEER_KEY,
+  DEFAULT_WHY_VOLUNTEER,
 } from "@/lib/site-content";
 import { ButtonLink } from "@/components/Button";
 import {
@@ -109,6 +111,10 @@ function ConceptCard({
 // content - this page only ever reads.
 export default async function Home() {
   const intro = await getSiteContent(HOMEPAGE_INTRO_KEY, DEFAULT_HOMEPAGE_INTRO);
+  const whyVolunteer = await getSiteContent(
+    WHY_VOLUNTEER_KEY,
+    DEFAULT_WHY_VOLUNTEER
+  );
 
   return (
     <main className="mx-auto flex max-w-4xl flex-1 flex-col gap-16 p-8">
@@ -203,6 +209,17 @@ export default async function Home() {
           href="/incident"
           linkLabel="לצפייה בסימולציה"
         />
+      </section>
+
+      {/* Admin-editable via the dashboard's "טקסט - למה להתנדב" field (§9:
+          "why volunteer copy, admin-editable"). Styled as a closing banner,
+          not another plain paragraph, since it's the page's final pitch. */}
+      <section className="flex flex-col items-center gap-4 rounded-xl bg-signal p-8 text-center text-paper sm:p-12">
+        <h2 className="font-display text-2xl font-medium">למה להתנדב?</h2>
+        <p className="max-w-xl text-paper/85">{whyVolunteer}</p>
+        <ButtonLink href="/register" variant="outlineOnDark">
+          הרשמה כמתנדב
+        </ButtonLink>
       </section>
     </main>
   );

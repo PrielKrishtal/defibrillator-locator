@@ -46,6 +46,8 @@ export default function AdminDashboardPage() {
   const [radiusStatus, setRadiusStatus] = useState<SaveStatus>("idle");
   const [introText, setIntroText] = useState("");
   const [introStatus, setIntroStatus] = useState<SaveStatus>("idle");
+  const [whyVolunteerText, setWhyVolunteerText] = useState("");
+  const [whyVolunteerStatus, setWhyVolunteerStatus] = useState<SaveStatus>("idle");
 
   // WHY redirect here, not in app/admin/layout.tsx: the layout also wraps
   // /admin/login, and guarding there would redirect the login page to
@@ -86,6 +88,9 @@ export default function AdminDashboardPage() {
       const introRes = await fetch("/api/site-content/homepage_intro");
       const introBody = await introRes.json();
       setIntroText(introBody.value);
+      const whyVolunteerRes = await fetch("/api/site-content/why_volunteer_copy");
+      const whyVolunteerBody = await whyVolunteerRes.json();
+      setWhyVolunteerText(whyVolunteerBody.value);
     }
     loadDashboardData();
   }, [accessToken, loadRegistrations]);
@@ -119,6 +124,17 @@ export default function AdminDashboardPage() {
       body: JSON.stringify({ value: introText }),
     });
     setIntroStatus(res.ok ? "done" : "error");
+  }
+
+  async function handleWhyVolunteerSave(e: FormEvent) {
+    e.preventDefault();
+    setWhyVolunteerStatus("saving");
+    const res = await authFetch("/api/site-content/why_volunteer_copy", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: whyVolunteerText }),
+    });
+    setWhyVolunteerStatus(res.ok ? "done" : "error");
   }
 
   async function handleLogout() {
@@ -229,6 +245,21 @@ export default function AdminDashboardPage() {
             className={INPUT_CLASSES}
           />
           <SaveButton status={introStatus} />
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-xl border border-line bg-paper p-6 shadow-sm">
+        <h2 className="font-display text-lg font-medium">
+          טקסט - למה להתנדב
+        </h2>
+        <form onSubmit={handleWhyVolunteerSave} className="flex flex-col gap-3">
+          <textarea
+            rows={5}
+            value={whyVolunteerText}
+            onChange={(e) => setWhyVolunteerText(e.target.value)}
+            className={INPUT_CLASSES}
+          />
+          <SaveButton status={whyVolunteerStatus} />
         </form>
       </section>
     </main>
