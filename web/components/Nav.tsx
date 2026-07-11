@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-// Shared top navigation. Only links to pages that actually exist yet - the
-// incident-report page (Phase 7) gets added here once it's built.
+// Shared top navigation.
 export function Nav() {
   return (
     <nav className="flex items-center justify-between gap-4 border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
@@ -9,6 +8,9 @@ export function Nav() {
         דפיברילטורים ניידים
       </Link>
       <div className="flex gap-6 text-sm">
+        <Link href="/incident" className="hover:underline">
+          מצוקה
+        </Link>
         <Link href="/register" className="hover:underline">
           הרשמה
         </Link>
