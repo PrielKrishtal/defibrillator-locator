@@ -2,6 +2,7 @@
 // surface of the auth server (plus /me and /health wired up in index.ts).
 
 import { Router, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import bcrypt from "bcrypt";
 import crypto from "node:crypto";
 import { supabase } from "./supabase";
@@ -39,7 +40,20 @@ function refreshCookieOptions() {
   };
 }
 
-authRouter.post("/login", async (req: Request, res: Response) => {
+// WHY 10 attempts per 15 minutes, per IP: generous enough that a real admin
+// mistyping their password a few times isn't locked out, but tight enough to
+// make guessing the password impractically slow on top of bcrypt's own
+// deliberate slowness. express-rate-limit tracks this in memory per server
+// instance - fine for this project's single Render instance.
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts, try again later" },
+});
+
+authRouter.post("/login", loginRateLimiter, async (req: Request, res: Response) => {
   const { username, password } = req.body ?? {};
   if (!username || !password) {
     return res

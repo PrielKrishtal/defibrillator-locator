@@ -166,6 +166,21 @@ Environment variables in production:
   `NEXT_PUBLIC_*` variables are inlined at build time, changing this value
   requires a redeploy without build cache to take effect.
 
+## Testing
+
+Both packages have a small `npm test` suite using Node's built-in test runner
+(`node:test`) — no new test framework or dependency.
+
+- **`auth-server`**: `npm test` starts the real Express app on a throwaway
+  port and checks `/health`, plus `/login` success/failure against the real
+  Supabase `admins` table (needs `auth-server/.env` filled in and
+  `npm run seed:admin` already run, per "Local development" above).
+- **`web`**: `npm test` runs 6 tests against `parseRegistration`, the
+  registration validation/sanitization logic — a pure function, so these need
+  no server or `.env` file.
+
+Small and not comprehensive by design — see `KNOWN_BUGS.md` #9 for scope.
+
 ## Known issues
 
 See `KNOWN_BUGS.md` for a current list of known limitations and open issues.

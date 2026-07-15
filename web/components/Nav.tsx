@@ -6,11 +6,11 @@ import Link from "next/link";
 // header pattern - the content below it is what gets width-constrained.
 export function Nav() {
   return (
-    <nav className="flex items-center justify-between gap-4 border-b border-line px-6 py-5 sm:px-8">
-      <Link href="/" className="font-display text-lg font-medium">
+    <nav className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-6 py-5 sm:px-8">
+      <Link href="/" className="font-display text-base font-medium sm:text-lg">
         דפיברילטורים ניידים
       </Link>
-      <div className="flex gap-6 text-sm text-ink/70">
+      <div className="flex gap-3 text-sm text-ink/70 sm:gap-6">
         <Link href="/incident" className="transition-colors hover:text-signal">
           מצוקה
         </Link>

@@ -6,45 +6,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getAdminFromRequest } from "@/lib/verify-admin";
+import { parseRegistration } from "@/lib/validate-registration";
+import { isRateLimited } from "@/lib/rate-limit";
+
+// WHY 5 per minute: no legitimate visitor submits this form more than a
+// couple of times a minute; this just blocks scripted spam without needing
+// a CAPTCHA. Public + unauthenticated is exactly the kind of endpoint worth
+// rate limiting, since anyone can hit it.
+const REGISTER_MAX_REQUESTS = 5;
+const REGISTER_WINDOW_MS = 60 * 1000;
 
 export async function POST(req: NextRequest) {
+  // WHY x-forwarded-for: Vercel (and most hosts) sit in front of the app as
+  // a proxy and record the real client IP in this header; a request can list
+  // several IPs (one per proxy hop), so the first one is the original
+  // client. "unknown" is a safe fallback for local dev, where every request
+  // just shares one bucket.
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "unknown";
+  if (isRateLimited(ip, REGISTER_MAX_REQUESTS, REGISTER_WINDOW_MS)) {
+    return NextResponse.json(
+      { error: "Too many requests, try again shortly" },
+      { status: 429 }
+    );
+  }
+
   const body = await req.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  const result = parseRegistration(body);
+  if (!result.valid) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
   const { firstName, lastName, mobile, loraId, hasDefibrillator, hasLora } =
-    body;
-
-  if (!firstName || typeof firstName !== "string") {
-    return NextResponse.json(
-      { error: "firstName is required" },
-      { status: 400 }
-    );
-  }
-  if (!mobile || typeof mobile !== "string") {
-    return NextResponse.json(
-      { error: "mobile is required" },
-      { status: 400 }
-    );
-  }
-  // WHY this check: §2's eligibility rule is "defibrillator owner (with or
-  // without LoRa) OR LoRa-only owner" - someone with neither isn't a valid
-  // registrant for this system.
-  if (!hasDefibrillator && !hasLora) {
-    return NextResponse.json(
-      { error: "Must have a defibrillator, a LoRa device, or both" },
-      { status: 400 }
-    );
-  }
+    result.data;
 
   const { error } = await supabase.from("registrations").insert({
     first_name: firstName,
     last_name: lastName || null,
     mobile,
     lora_id: hasLora ? loraId || null : null,
-    has_defibrillator: Boolean(hasDefibrillator),
-    has_lora: Boolean(hasLora),
+    has_defibrillator: hasDefibrillator,
+    has_lora: hasLora,
   });
 
   if (error) {
