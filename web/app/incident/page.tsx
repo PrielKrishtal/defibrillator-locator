@@ -26,24 +26,56 @@ const DEFAULT_INCIDENT = { lat: 32.0853, lng: 34.7818 };
 // drives the notice under the map.
 type RouteStatus = "none" | "loading" | "cycling" | "fallback";
 
+// Same three real coastline reference points db/seed-devices.ts uses to keep
+// seeded devices on land, duplicated here since web/ and db/ are separate
+// npm packages with no shared module (see that file for the full reasoning,
+// brief §11 2026-07-12). Without this, quick-simulate could land an
+// "incident" in the Mediterranean the same way ungated seed devices once did.
+const COASTLINE_REFERENCE_SOUTH = { lat: 32.02, lng: 34.746 };
+const COASTLINE_REFERENCE_NORTH = { lat: 32.248, lng: 34.825 };
+const COASTLINE_SAFETY_MARGIN_DEG = 0.015;
+
+function minLandLngAt(lat: number): number {
+  const slope =
+    (COASTLINE_REFERENCE_NORTH.lng - COASTLINE_REFERENCE_SOUTH.lng) /
+    (COASTLINE_REFERENCE_NORTH.lat - COASTLINE_REFERENCE_SOUTH.lat);
+  const interpolatedCoastLng =
+    COASTLINE_REFERENCE_SOUTH.lng + slope * (lat - COASTLINE_REFERENCE_SOUTH.lat);
+  return interpolatedCoastLng + COASTLINE_SAFETY_MARGIN_DEG;
+}
+
 // WHY sqrt(random) for the radius, not a plain random one: a uniform random
 // radius bunches points near the center (there's less area in an inner ring
 // than an outer one) - the same fix db/seed-devices.ts uses, for the same
 // reason, so the quick-simulate button lands points in the same kind of
 // spread as the seeded devices themselves.
+//
+// WHY retry instead of clamp on a sea landing: same reasoning as
+// db/seed-devices.ts - clamping would pile rejected points along one edge
+// instead of keeping an even spread.
 function randomPointNearDeviceCluster(): { lat: number; lng: number } {
   const maxRadiusMeters = 15000;
   const earthRadiusMeters = 6371000;
-  const radius = maxRadiusMeters * Math.sqrt(Math.random());
-  const angle = Math.random() * 2 * Math.PI;
-  const dLat = (radius * Math.cos(angle)) / earthRadiusMeters;
-  const dLng =
-    (radius * Math.sin(angle)) /
-    (earthRadiusMeters * Math.cos((DEFAULT_INCIDENT.lat * Math.PI) / 180));
-  return {
-    lat: DEFAULT_INCIDENT.lat + (dLat * 180) / Math.PI,
-    lng: DEFAULT_INCIDENT.lng + (dLng * 180) / Math.PI,
-  };
+
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const radius = maxRadiusMeters * Math.sqrt(Math.random());
+    const angle = Math.random() * 2 * Math.PI;
+    const dLat = (radius * Math.cos(angle)) / earthRadiusMeters;
+    const dLng =
+      (radius * Math.sin(angle)) /
+      (earthRadiusMeters * Math.cos((DEFAULT_INCIDENT.lat * Math.PI) / 180));
+    const point = {
+      lat: DEFAULT_INCIDENT.lat + (dLat * 180) / Math.PI,
+      lng: DEFAULT_INCIDENT.lng + (dLng * 180) / Math.PI,
+    };
+    if (point.lng >= minLandLngAt(point.lat)) {
+      return point;
+    }
+  }
+  // 50 rejected attempts in a row essentially never happens (see
+  // seed-devices.ts) - falling back to the center point is a safe,
+  // always-on-land default rather than looping forever.
+  return { lat: DEFAULT_INCIDENT.lat, lng: DEFAULT_INCIDENT.lng };
 }
 
 type GoldenWindowLevel = "green" | "amber" | "red";
@@ -76,7 +108,14 @@ function formatMinutesSeconds(totalSeconds: number): string {
 }
 
 export default function IncidentPage() {
-  const [incident, setIncident] = useState(DEFAULT_INCIDENT);
+  // WHY null, not DEFAULT_INCIDENT: an incident only exists once the user
+  // does something (click or quick-simulate) - starting from a real
+  // coordinate made the page treat page-load itself as an already-active
+  // incident, which is also why the golden-window timer used to start
+  // ticking before anyone had done anything.
+  const [incident, setIncident] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
   const [radiusMeters, setRadiusMeters] = useState(0);
   const [devicesInRange, setDevicesInRange] = useState<MapDevice[]>([]);
   const [allDevices, setAllDevices] = useState<AllDevice[]>([]);
@@ -87,10 +126,11 @@ export default function IncidentPage() {
     number | null
   >(null);
 
-  // The golden-window clock: incidentSetAt resets to "now" every time a new
-  // incident point is set (click or quick-simulate); now ticks once a
-  // second so elapsedSeconds below stays live without re-fetching anything.
-  const [incidentSetAt, setIncidentSetAt] = useState(() => Date.now());
+  // The golden-window clock: incidentSetAt starts null (no incident, no
+  // clock) and is set to "now" the moment an incident point is set (click
+  // or quick-simulate); now ticks once a second so elapsedSeconds below
+  // stays live without re-fetching anything.
+  const [incidentSetAt, setIncidentSetAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -98,7 +138,8 @@ export default function IncidentPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const elapsedSeconds = Math.floor((now - incidentSetAt) / 1000);
+  const elapsedSeconds =
+    incidentSetAt !== null ? Math.floor((now - incidentSetAt) / 1000) : 0;
 
   // WHY reset the clock here, in the same event handler that sets the
   // incident, instead of an effect keyed on `incident`: Date.now() is an
@@ -121,16 +162,25 @@ export default function IncidentPage() {
   }, []);
 
   useEffect(() => {
+    // No incident set yet (page just loaded, nothing clicked/simulated) -
+    // nothing to geo-fence against.
+    if (!incident) return;
+
     // Guards against a race: if the user clicks a new incident point before
     // the previous fetch chain finishes, the stale one bails out instead of
     // overwriting fresh state.
     let cancelled = false;
+    // WHY this const: TypeScript's null-narrowing from the guard above
+    // doesn't carry into a nested function's later statements, only its
+    // first use - capturing the narrowed value once here keeps every
+    // reference below correctly typed as non-null.
+    const activeIncident = incident;
 
     async function loadIncident() {
       const res = await fetch("/api/incident", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(incident),
+        body: JSON.stringify(activeIncident),
       });
       if (!res.ok || cancelled) return;
       const data = await res.json();
@@ -153,7 +203,7 @@ export default function IncidentPage() {
       // the map is useful before any external routing call returns.
       const nearest = data.devices[0];
       setRoutePath([
-        [incident.lat, incident.lng],
+        [activeIncident.lat, activeIncident.lng],
         [nearest.lat, nearest.lng],
       ]);
       setRouteStatus("loading");
@@ -163,7 +213,7 @@ export default function IncidentPage() {
       // Now try to upgrade that straight line to a real cycling route.
       try {
         const routeRes = await fetch(
-          `/api/route?fromLat=${incident.lat}&fromLng=${incident.lng}` +
+          `/api/route?fromLat=${activeIncident.lat}&fromLng=${activeIncident.lng}` +
             `&toLat=${nearest.lat}&toLng=${nearest.lng}`
         );
         if (cancelled) return;
@@ -212,13 +262,20 @@ export default function IncidentPage() {
       </p>
 
       <div>
-        <Button variant="outline" onClick={handleQuickSimulate}>
-          הדמיה מהירה
+        {/* WHY text-lg only, not a padding override too: Button's own BASE
+            string already sets px-4/py-2 - adding another class for the
+            same property would leave two rules targeting the same padding,
+            and which one wins depends on Tailwind's internal build order,
+            not the order written here. text-lg doesn't collide with
+            anything BASE sets. */}
+        <Button variant="dark" className="text-lg" onClick={handleQuickSimulate}>
+          הדמיה
         </Button>
       </div>
 
       <IncidentMap
         incident={incident}
+        initialCenter={DEFAULT_INCIDENT}
         radiusMeters={radiusMeters}
         devicesInRange={devicesInRange}
         allDevices={allDevices}
@@ -228,62 +285,75 @@ export default function IncidentPage() {
 
       <MapLegend />
 
-      {/* WHY 4/10-minute cutoffs, and why elapsed+ETA together for the second
-          line: see goldenWindowLevel above - both figures come from the
-          assignment's own survival-drop-off paragraph, and "will help arrive
-          in time" is elapsed time since the call plus the remaining ride,
-          not either number alone. */}
-      <div className="flex flex-col gap-2 rounded-lg border border-line bg-paper px-4 py-3 text-sm">
-        <p className="flex items-center gap-2">
-          <span className="text-ink/70">זמן שחלף מאז קריאת המצוקה:</span>
-          <span
-            className={`font-mono text-base font-medium ${
-              GOLDEN_WINDOW_TEXT_CLASS[goldenWindowLevel(elapsedSeconds)]
-            }`}
-          >
-            {formatMinutesSeconds(elapsedSeconds)}
-          </span>
-        </p>
-        {routeStatus === "cycling" && cyclingDurationSeconds !== null && (
-          <p
-            className={
-              GOLDEN_WINDOW_TEXT_CLASS[
-                goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds)
-              ]
-            }
-          >
-            זמן הגעה משוער: {Math.round(cyclingDurationSeconds / 60)} דק&apos; -{" "}
-            {goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds) === "red"
-              ? "מעבר לחלון הזהב"
-              : "בתוך חלון הזהב"}
-          </p>
-        )}
-      </div>
+      {/* WHY gated on `incident`: none of this means anything before a real
+          incident exists - the radius/device-count/timer are all zero-ish
+          defaults otherwise, which would just be confusing to show. */}
+      {incident && (
+        <>
+          {/* WHY 4/10-minute cutoffs, and why elapsed+ETA together for the
+              second line: see goldenWindowLevel above - both figures come
+              from the assignment's own survival-drop-off paragraph, and
+              "will help arrive in time" is elapsed time since the call plus
+              the remaining ride, not either number alone. */}
+          <div className="flex flex-col gap-2 rounded-lg border border-line bg-paper px-4 py-3 text-sm">
+            <p className="flex items-center gap-2">
+              <span className="text-ink/70">זמן שחלף מאז קריאת המצוקה:</span>
+              <span
+                className={`font-mono text-base font-medium ${
+                  GOLDEN_WINDOW_TEXT_CLASS[goldenWindowLevel(elapsedSeconds)]
+                }`}
+              >
+                {formatMinutesSeconds(elapsedSeconds)}
+              </span>
+            </p>
+            {routeStatus === "cycling" && cyclingDurationSeconds !== null && (
+              <p
+                className={
+                  GOLDEN_WINDOW_TEXT_CLASS[
+                    goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds)
+                  ]
+                }
+              >
+                זמן הגעה משוער: {Math.round(cyclingDurationSeconds / 60)} דק&apos;{" "}
+                -{" "}
+                {goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds) ===
+                "red"
+                  ? "מעבר לחלון הזהב"
+                  : "בתוך חלון הזהב"}
+              </p>
+            )}
+          </div>
 
-      <div className="flex flex-col gap-1 text-sm">
-        <p>
-          מכשירים בטווח ({radiusMeters} מ׳):{" "}
-          <span className="font-mono font-medium">{devicesInRange.length}</span>
-        </p>
-        {routeStatus === "cycling" && cyclingDistance !== null && (
-          <p className="text-signal">
-            מסלול רכיבה למכשיר הקרוב:{" "}
-            <span className="font-mono">{(cyclingDistance / 1000).toFixed(2)}</span>{" "}
-            ק״מ
-          </p>
-        )}
-        {routeStatus === "loading" && (
-          <p className="text-ink/60">טוען מסלול רכיבה...</p>
-        )}
-        {routeStatus === "fallback" && (
-          <p className="text-beacon">
-            לא ניתן לטעון מסלול רכיבה כרגע, מוצג קו ישר למכשיר הקרוב.
-          </p>
-        )}
-        {routeStatus === "none" && devicesInRange.length === 0 && (
-          <p className="text-ink/60">אין מכשירים בטווח הנתון.</p>
-        )}
-      </div>
+          <div className="flex flex-col gap-1 text-sm">
+            <p>
+              מכשירים בטווח ({radiusMeters} מ׳):{" "}
+              <span className="font-mono font-medium">
+                {devicesInRange.length}
+              </span>
+            </p>
+            {routeStatus === "cycling" && cyclingDistance !== null && (
+              <p className="text-signal">
+                מסלול רכיבה למכשיר הקרוב:{" "}
+                <span className="font-mono">
+                  {(cyclingDistance / 1000).toFixed(2)}
+                </span>{" "}
+                ק״מ
+              </p>
+            )}
+            {routeStatus === "loading" && (
+              <p className="text-ink/60">טוען מסלול רכיבה...</p>
+            )}
+            {routeStatus === "fallback" && (
+              <p className="text-beacon">
+                לא ניתן לטעון מסלול רכיבה כרגע, מוצג קו ישר למכשיר הקרוב.
+              </p>
+            )}
+            {routeStatus === "none" && devicesInRange.length === 0 && (
+              <p className="text-ink/60">אין מכשירים בטווח הנתון.</p>
+            )}
+          </div>
+        </>
+      )}
     </main>
   );
 }

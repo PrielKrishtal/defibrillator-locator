@@ -16,6 +16,10 @@ const VARIANTS = {
   primary: "bg-signal text-paper hover:opacity-90",
   outline: "border border-line text-ink hover:bg-line/30",
   outlineOnDark: "border border-paper/40 text-paper hover:bg-paper/10",
+  // WHY ink, not a raw black: ink is already the system's darkest token
+  // (near-black), so this stays inside the named-token palette instead of
+  // introducing an untracked color for one button.
+  dark: "bg-ink text-paper hover:opacity-90",
 };
 
 type Variant = keyof typeof VARIANTS;

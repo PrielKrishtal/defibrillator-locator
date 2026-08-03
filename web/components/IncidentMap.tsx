@@ -38,7 +38,13 @@ export type AllDevice = {
 };
 
 type IncidentMapProps = {
-  incident: { lat: number; lng: number };
+  // Null before the user has clicked or hit quick-simulate - nothing is
+  // drawn yet in that state (see the effects below).
+  incident: { lat: number; lng: number } | null;
+  // Where the map centers itself on mount, regardless of whether an
+  // incident exists yet. Kept separate from `incident` so an empty map
+  // still has somewhere sensible to look at.
+  initialCenter: { lat: number; lng: number };
   radiusMeters: number;
   devicesInRange: MapDevice[];
   // The full seeded population, shown muted for context so the geofence's
@@ -58,6 +64,7 @@ type IncidentMapProps = {
 // Leaflet keeps every map operation an explicit, defensible call.
 export default function IncidentMap({
   incident,
+  initialCenter,
   radiusMeters,
   devicesInRange,
   allDevices,
@@ -88,7 +95,7 @@ export default function IncidentMap({
     if (!containerRef.current || mapRef.current) return;
 
     const map = L.map(containerRef.current).setView(
-      [incident.lat, incident.lng],
+      [initialCenter.lat, initialCenter.lng],
       13
     );
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -117,13 +124,17 @@ export default function IncidentMap({
     if (!overlay) return;
     overlay.clearLayers();
 
-    // Alert radius circle - the visible geo-fence, in the system's own color.
-    L.circle([incident.lat, incident.lng], {
-      radius: radiusMeters,
-      color: COLOR.signal,
-      weight: 1,
-      fillOpacity: 0.05,
-    }).addTo(overlay);
+    // Alert radius circle - the visible geo-fence, in the system's own
+    // color. Skipped entirely before an incident exists: there's no
+    // geofence to show yet.
+    if (incident) {
+      L.circle([incident.lat, incident.lng], {
+        radius: radiusMeters,
+        color: COLOR.signal,
+        weight: 1,
+        fillOpacity: 0.05,
+      }).addTo(overlay);
+    }
 
     // Devices outside the radius, drawn muted first so the in-range set
     // (drawn next, in full color) visibly stands out against them - this is
@@ -180,22 +191,26 @@ export default function IncidentMap({
     // The incident marker itself: an L.marker with a divIcon, not a
     // circleMarker like everything else - it's the one element on the map
     // with motion (the pulse ring), which needs real DOM/CSS, not SVG.
-    const incidentIcon = L.divIcon({
-      className: "incident-icon",
-      html: `
-        <div class="flex h-9 w-9 items-center justify-center">
-          <div class="relative h-4 w-4">
-            <div class="incident-pulse absolute inset-0 rounded-full bg-flare"></div>
-            <div class="absolute inset-0 rounded-full border-2 border-paper bg-flare"></div>
+    // Skipped when there's no incident yet, for the same reason as the
+    // circle above.
+    if (incident) {
+      const incidentIcon = L.divIcon({
+        className: "incident-icon",
+        html: `
+          <div class="flex h-9 w-9 items-center justify-center">
+            <div class="relative h-4 w-4">
+              <div class="incident-pulse absolute inset-0 rounded-full bg-flare"></div>
+              <div class="absolute inset-0 rounded-full border-2 border-paper bg-flare"></div>
+            </div>
           </div>
-        </div>
-      `,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
-    });
-    L.marker([incident.lat, incident.lng], { icon: incidentIcon })
-      .bindTooltip("נקודת המצוקה")
-      .addTo(overlay);
+        `,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+      L.marker([incident.lat, incident.lng], { icon: incidentIcon })
+        .bindTooltip("נקודת המצוקה")
+        .addTo(overlay);
+    }
 
     // The path to the nearest device, in the beacon color - the same color
     // as the LoRa ring, since both represent "a signal in motion toward
@@ -206,6 +221,24 @@ export default function IncidentMap({
       L.polyline(routePath, { color: COLOR.beacon, weight: 4 }).addTo(overlay);
     }
   }, [incident, radiusMeters, devicesInRange, allDevices, routePath]);
+
+  // Pan/zoom so the incident and its whole radius circle are visible
+  // without the user having to zoom out manually - a click near the edge
+  // of the current view (or a quick-simulate point on the far side of the
+  // 15km scatter) could otherwise land outside what's on screen. Every
+  // in-range device is guaranteed to be within this circle by definition,
+  // so fitting to it also brings the routed device into view; an OSRM
+  // cycling route can occasionally jut slightly outside it on a winding
+  // road, which is an accepted tradeoff for not having to fit to the full
+  // route geometry too.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !incident) return;
+    const bounds = L.circle([incident.lat, incident.lng], {
+      radius: radiusMeters,
+    }).getBounds();
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }, [incident, radiusMeters]);
 
   return <div ref={containerRef} className="h-125 w-full rounded-lg" />;
 }
