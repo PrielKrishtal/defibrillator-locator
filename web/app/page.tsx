@@ -32,38 +32,35 @@ function FlowMiniNode({
   );
 }
 
-// A CSS border-triangle, not a text glyph - Unicode triangle characters
-// (◀, ▾) render inconsistently across fonts and don't line up cleanly with
-// a straight connector line at small sizes. A border-trick triangle is pure
-// geometry (zero-size box, colored border on one side, transparent on the
-// two adjacent sides), so "pointing down" and "pointing left" are the exact
-// same crisp shape, just with the colored side rotated.
-function ArrowTip({ direction }: { direction: "down" | "left" }) {
+// A single filled SVG shape (shaft + head as one path), not a separate line
+// element next to a triangle. Two elements of different visual weight (a
+// 1px hairline next to a bold fill) read as mismatched on their own, and on
+// this dir="rtl" page a flex row of two children also reorders them (first
+// DOM child lands on the main-start side, which is the right in RTL) - the
+// head and shaft could end up on the wrong sides of each other. One path
+// has no children to reorder and one fill, so it's immune to both problems.
+function Arrow({ direction }: { direction: "down" | "left" }) {
   if (direction === "down") {
     return (
-      <span
+      <svg
+        viewBox="0 0 12 28"
+        className="h-7 w-3 text-beacon"
+        fill="currentColor"
         aria-hidden
-        className="h-0 w-0 border-x-4 border-t-[6px] border-x-transparent border-t-beacon"
-      />
+      >
+        <path d="M5 0H7V18H11L6 28L1 18H5Z" />
+      </svg>
     );
   }
   return (
-    <span
+    <svg
+      viewBox="0 0 28 12"
+      className="h-3 w-7 text-beacon"
+      fill="currentColor"
       aria-hidden
-      className="h-0 w-0 border-y-4 border-r-[6px] border-y-transparent border-r-beacon"
-    />
-  );
-}
-
-// A short line + a triangle tip, not just a lone arrow glyph - a bare "←"
-// character read as a stray typo at this size; pairing it with a connector
-// line makes it read as an actual flowchart connector.
-function FlowArrow() {
-  return (
-    <div className="flex items-center gap-1" aria-hidden>
-      <ArrowTip direction="left" />
-      <span className="h-px w-5 bg-beacon" />
-    </div>
+    >
+      <path d="M28 5V7H10V11L0 6L10 1V5Z" />
+    </svg>
   );
 }
 
@@ -175,10 +172,7 @@ export default async function Home() {
             <span className="font-medium">קריאת מצוקה (דום לב)</span>
           </div>
 
-          <div className="flex flex-col items-center" aria-hidden>
-            <span className="h-6 w-px bg-beacon" />
-            <ArrowTip direction="down" />
-          </div>
+          <Arrow direction="down" />
 
           <div className="grid w-full max-w-2xl grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr]">
             <FlowPathCard>
@@ -186,7 +180,7 @@ export default async function Home() {
                 icon={<SignalIcon className="h-7 w-7 text-signal" />}
                 label="LoRa / Meshtastic"
               />
-              <FlowArrow />
+              <Arrow direction="left" />
               <FlowMiniNode
                 icon={<PinIcon className="h-7 w-7 text-signal" />}
                 label="נקודת מיקום GPS"
@@ -202,7 +196,7 @@ export default async function Home() {
                 icon={<SmsIcon className="h-7 w-7 text-beacon" />}
                 label="הודעת SMS"
               />
-              <FlowArrow />
+              <Arrow direction="left" />
               <FlowMiniNode
                 icon={<PinIcon className="h-7 w-7 text-beacon" />}
                 label="טלפון + מיקום"
