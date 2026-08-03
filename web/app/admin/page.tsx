@@ -16,6 +16,15 @@ type Registration = {
   created_at: string;
 };
 
+// Matches what GET /api/devices already returns - the ~50 seeded fleet
+// devices from Phase 2, unfiltered. Read-only here: this dashboard section
+// is for visibility into the simulated fleet, not editing it.
+type Device = {
+  deviceId: string;
+  hasLora: boolean;
+  batteryLevel: number;
+};
+
 type SaveStatus = "idle" | "saving" | "done" | "error";
 
 const INPUT_CLASSES =
@@ -42,6 +51,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [radiusMeters, setRadiusMeters] = useState("");
   const [radiusStatus, setRadiusStatus] = useState<SaveStatus>("idle");
   const [introText, setIntroText] = useState("");
@@ -91,6 +101,12 @@ export default function AdminDashboardPage() {
       const whyVolunteerRes = await fetch("/api/site-content/why_volunteer_copy");
       const whyVolunteerBody = await whyVolunteerRes.json();
       setWhyVolunteerText(whyVolunteerBody.value);
+      // WHY plain fetch, not authFetch: GET /api/devices is public (the
+      // incident map already reads it with no login), so this is just
+      // reusing existing data, not a new admin-only endpoint.
+      const devicesRes = await fetch("/api/devices");
+      const devicesBody = await devicesRes.json();
+      setDevices(devicesBody.devices ?? []);
     }
     loadDashboardData();
   }, [accessToken, loadRegistrations]);
@@ -217,6 +233,43 @@ export default function AdminDashboardPage() {
         </div>
       </section>
 
+      <section className="flex flex-col gap-4 rounded-xl border border-line bg-paper p-6 shadow-sm">
+        <h2 className="font-display text-lg font-medium">
+          מכשירי השדה המדומים ({devices.length})
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-100 text-sm">
+            <thead>
+              <tr className="border-b border-line text-right">
+                <th className="p-2 font-medium text-ink/70">מזהה מכשיר</th>
+                <th className="p-2 font-medium text-ink/70">LoRa</th>
+                <th className="p-2 font-medium text-ink/70">סוללה</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.map((d) => (
+                <tr key={d.deviceId} className="border-b border-line/50">
+                  <td className="p-2 font-mono text-ink/70">{d.deviceId}</td>
+                  <td className="p-2">
+                    <YesNo value={d.hasLora} />
+                  </td>
+                  <td className="p-2">
+                    <BatteryBadge level={d.batteryLevel} />
+                  </td>
+                </tr>
+              ))}
+              {devices.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="p-4 text-center text-ink/50">
+                    אין מכשירים
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section className="flex flex-col gap-3 rounded-xl border border-line bg-paper p-6 shadow-sm">
         <h2 className="font-display text-lg font-medium">
           רדיוס הסימולטור (מטרים)
@@ -273,5 +326,24 @@ function YesNo({ value }: { value: boolean }) {
     <span className="font-medium text-signal">כן</span>
   ) : (
     <span className="text-ink/40">לא</span>
+  );
+}
+
+// WHY the 20% cutoff specifically: it matches the assignment's own
+// maintenance-alert wording for when a device should trigger a low-battery
+// notice (see brief §7's bonus section) - not an arbitrary UI threshold.
+function BatteryBadge({ level }: { level: number }) {
+  const colorClass =
+    level >= 50
+      ? "bg-signal/15 text-signal"
+      : level >= 20
+        ? "bg-beacon/15 text-beacon"
+        : "bg-flare/15 text-flare";
+  return (
+    <span
+      className={`rounded-full px-2 py-0.5 font-mono text-xs font-medium ${colorClass}`}
+    >
+      {level}%
+    </span>
   );
 }
