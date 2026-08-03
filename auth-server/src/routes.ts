@@ -67,10 +67,18 @@ authRouter.post("/login", loginRateLimiter, async (req: Request, res: Response) 
     .eq("username", username)
     .maybeSingle();
 
+  // WHY 500 here but 401 below: a Supabase error means the lookup itself
+  // failed (network, outage) - a real credentials check never happened, so
+  // reporting "invalid credentials" would be misleading.
+  if (error) {
+    console.error("Login lookup failed:", error);
+    return res.status(500).json({ error: "Login failed" });
+  }
+
   // WHY the same 401 for "no such user" and "wrong password": if the two
   // differed, an attacker could probe which usernames exist. bcrypt.compare
   // is only reached once we have a real hash to compare against.
-  if (error || !admin) {
+  if (!admin) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
