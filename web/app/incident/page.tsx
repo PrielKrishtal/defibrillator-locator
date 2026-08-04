@@ -252,16 +252,23 @@ export default function IncidentPage() {
     <main className="mx-auto flex max-w-4xl flex-1 flex-col gap-4 p-8">
       <h1 className="font-display text-3xl font-medium">עמוד מצוקה</h1>
       <p className="text-sm text-ink/70">
-        זהו סימולטור: לחצו בכל מקום על המפה, או על כפתור &quot;הדמיה
-        מהירה&quot;, כדי לדמות מהיכן מגיעה קריאת מצוקה - המערכת תאתר מכשירים
-        ברדיוס שהוגדר ותציג מסלול רכיבה למכשיר הקרוב ביותר.
+        זהו סימולטור: לחצו בכל מקום על המפה, או על כפתור &quot;הדמיה&quot;,
+        כדי לדמות מהיכן מגיעה קריאת מצוקה - המערכת תאתר מכשירים ברדיוס
+        שהוגדר ותציג מסלול רכיבה למכשיר הקרוב ביותר. מרגע קביעת המיקום רץ
+        שעון &quot;חלון הזהב&quot;: ירוק בארבע הדקות הראשונות, כתום עד עשר
+        דקות, ואדום מעבר לכך - בהתאם לירידה בסיכויי ההישרדות ככל שהעזרה
+        מתעכבת.
       </p>
       <p className="text-sm text-ink/70">
         המיקום להמחשה בלבד ומוגבל לאזור המכשירים המדומים סביב תל אביב - אינו
         קריאת GPS אמיתית.
       </p>
 
-      <div>
+      {/* WHY the timer sits here, next to the button, not below the map:
+          it needs to be visible immediately without scrolling - that was
+          the whole point of raising it up from its old spot under the
+          map and legend. */}
+      <div className="flex items-center gap-4">
         {/* WHY text-lg only, not a padding override too: Button's own BASE
             string already sets px-4/py-2 - adding another class for the
             same property would leave two rules targeting the same padding,
@@ -271,6 +278,18 @@ export default function IncidentPage() {
         <Button variant="dark" className="text-lg" onClick={handleQuickSimulate}>
           הדמיה
         </Button>
+        {incident && (
+          <p className="flex items-center gap-2 text-sm">
+            <span className="text-ink/70">זמן שחלף:</span>
+            <span
+              className={`font-mono text-lg font-medium ${
+                GOLDEN_WINDOW_TEXT_CLASS[goldenWindowLevel(elapsedSeconds)]
+              }`}
+            >
+              {formatMinutesSeconds(elapsedSeconds)}
+            </span>
+          </p>
+        )}
       </div>
 
       <IncidentMap
@@ -286,27 +305,15 @@ export default function IncidentPage() {
       <MapLegend />
 
       {/* WHY gated on `incident`: none of this means anything before a real
-          incident exists - the radius/device-count/timer are all zero-ish
+          incident exists - the radius/device-count are all zero-ish
           defaults otherwise, which would just be confusing to show. */}
       {incident && (
         <>
-          {/* WHY 4/10-minute cutoffs, and why elapsed+ETA together for the
-              second line: see goldenWindowLevel above - both figures come
-              from the assignment's own survival-drop-off paragraph, and
-              "will help arrive in time" is elapsed time since the call plus
-              the remaining ride, not either number alone. */}
-          <div className="flex flex-col gap-2 rounded-lg border border-line bg-paper px-4 py-3 text-sm">
-            <p className="flex items-center gap-2">
-              <span className="text-ink/70">זמן שחלף מאז קריאת המצוקה:</span>
-              <span
-                className={`font-mono text-base font-medium ${
-                  GOLDEN_WINDOW_TEXT_CLASS[goldenWindowLevel(elapsedSeconds)]
-                }`}
-              >
-                {formatMinutesSeconds(elapsedSeconds)}
-              </span>
-            </p>
-            {routeStatus === "cycling" && cyclingDurationSeconds !== null && (
+          {/* WHY elapsed+ETA together, not ETA alone: see goldenWindowLevel
+              above - "will help arrive in time" is elapsed time since the
+              call plus the remaining ride, not either number by itself. */}
+          {routeStatus === "cycling" && cyclingDurationSeconds !== null && (
+            <div className="rounded-lg border border-line bg-paper px-4 py-3 text-sm">
               <p
                 className={
                   GOLDEN_WINDOW_TEXT_CLASS[
@@ -321,8 +328,8 @@ export default function IncidentPage() {
                   ? "מעבר לחלון הזהב"
                   : "בתוך חלון הזהב"}
               </p>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-1 text-sm">
             <p>

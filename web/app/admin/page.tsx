@@ -237,10 +237,17 @@ export default function AdminDashboardPage() {
         <h2 className="font-display text-lg font-medium">
           מכשירי השדה המדומים ({devices.length})
         </h2>
-        <div className="overflow-x-auto">
+        {/* WHY max-h + overflow-y here, unlike the registrations table
+            above: with 50 seeded devices (vs. however many real
+            registrants), an unbounded table would push the rest of the
+            dashboard far down the page - a fixed height with its own
+            scrollbar keeps the page layout the same regardless of fleet
+            size. The sticky header keeps the column labels visible while
+            scrolling through it. */}
+        <div className="max-h-96 overflow-x-auto overflow-y-auto">
           <table className="w-full min-w-100 text-sm">
             <thead>
-              <tr className="border-b border-line text-right">
+              <tr className="sticky top-0 border-b border-line bg-paper text-right">
                 <th className="p-2 font-medium text-ink/70">מזהה מכשיר</th>
                 <th className="p-2 font-medium text-ink/70">LoRa</th>
                 <th className="p-2 font-medium text-ink/70">סוללה</th>
