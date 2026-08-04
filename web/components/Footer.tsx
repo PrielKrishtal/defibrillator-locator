@@ -66,12 +66,12 @@ export function Footer() {
           </div>
         </div>
 
-        {/* WHY its own border-t + muted text-xs, not just another section
-            in the flex-col: this is a personal credit line, not a link a
-            visitor needs - keeping it visually subordinate (smaller,
-            fainter, separated by a divider) means it doesn't compete with
-            the MDA/purchase links above for attention. */}
-        <div className="border-t border-line pt-4 text-xs text-ink/50">
+        {/* WHY border-t but full-opacity ink and bold, not muted: still
+            separated from the MDA/purchase links above by the divider, but
+            meant to be read clearly, not blend into the background - ink
+            is the site's own dark-text token (not raw black), so this
+            stays inside the same palette as everything else. */}
+        <div className="border-t border-line pt-4 text-base font-bold text-ink">
           פותח על ידי Priel Krishtal | פרויקט גמר, קורס פיתוח WEB
         </div>
       </div>
