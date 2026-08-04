@@ -234,9 +234,14 @@ export default function IncidentMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !incident) return;
-    const bounds = L.circle([incident.lat, incident.lng], {
-      radius: radiusMeters,
-    }).getBounds();
+    // WHY LatLng.toBounds, not L.circle(...).getBounds(): a Circle's
+    // getBounds() projects its radius through the map it's attached to -
+    // this throwaway circle was never added to the map (no .addTo call),
+    // so it has no map to project through and Leaflet's internal code
+    // crashed reading a property off that missing reference. toBounds is
+    // pure lat/lng arithmetic with no map dependency, so it works
+    // regardless of whether anything has been added to the map yet.
+    const bounds = L.latLng(incident.lat, incident.lng).toBounds(radiusMeters);
     map.fitBounds(bounds, { padding: [40, 40] });
   }, [incident, radiusMeters]);
 
