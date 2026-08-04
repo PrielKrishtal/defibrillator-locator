@@ -41,10 +41,8 @@ export default function AdminLoginPage() {
   }
 
   return (
-    // WHY the same split shell as /register (see AuthLayout there): a
-    // narrow card centered on an otherwise-empty wide page looked
-    // unfinished. Both auth pages now share the same BrandPanel treatment
-    // instead of each inventing its own fix.
+    // Same split shell as /register (see AuthLayout there) instead of a
+    // narrow card on an otherwise-empty page.
     <main className="flex flex-1 flex-col lg:grid lg:grid-cols-2">
       <div className="flex flex-1 items-center justify-center p-8">
         <div className="flex w-full max-w-md flex-col gap-6 rounded-xl border border-line bg-paper p-8 shadow-sm sm:p-10">

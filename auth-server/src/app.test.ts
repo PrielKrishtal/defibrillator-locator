@@ -1,20 +1,8 @@
-// Tests for the auth server. Uses Node's built-in test runner (node:test)
-// and its built-in fetch - no new test framework or HTTP-assertion library
-// needed, since Node already ships both.
+// Uses node:test + built-in fetch - no new test dependency. Starts a real
+// server and hits real HTTP, not the handlers directly, for an honest test.
 //
-// WHY start a real server instead of calling route handlers directly: this
-// exercises the actual HTTP layer (status codes, JSON parsing, cookies)
-// exactly as a real client would hit it, not just the function bodies in
-// isolation - a more honest test of "does /login actually work."
-//
-// WHY these tests need real credentials: /login and its success/failure
-// cases talk to the real Supabase `admins` table, the same one the deployed
-// app uses. There's no mock database here - these tests only pass with
-// auth-server/.env filled in and `npm run seed:admin` already run in db/
-// (see README). That's a deliberate simplification: mocking Supabase would
-// need its own setup, and this project already treats "run against the real
-// configured services" as its normal way of testing (see README's Testing
-// note).
+// Needs a real Supabase `admins` row: auth-server/.env filled in and
+// `npm run seed:admin` already run - no mocking, per this project's norm.
 
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";

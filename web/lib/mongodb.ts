@@ -1,10 +1,6 @@
-// Shared Mongoose connection for Next.js API routes and Server Components.
-//
-// WHY the global cache: Next.js dev mode hot-reloads modules on every file
-// change, and serverless/edge deployments can reuse the same process across
-// requests. Without caching the connection on `globalThis`, each reload or
-// request would open a brand new MongoDB connection instead of reusing one,
-// eventually exhausting the connection pool.
+// Shared Mongoose connection, cached on `globalThis`: without it, every dev
+// hot-reload or serverless invocation would open a new connection instead
+// of reusing one, eventually exhausting the pool.
 
 import mongoose from "mongoose";
 
@@ -35,10 +31,8 @@ export async function connectToMongo() {
     return cache.conn;
   }
   if (!cache.promise) {
-    // WHY the cast: TypeScript's control-flow narrowing from the `if
-    // (!mongoUri) throw` check above doesn't carry across this function
-    // boundary, even though it's a module-level const that's already
-    // guaranteed to be a string by the time this function ever runs.
+    // Cast needed: TS's narrowing from the throw-check above doesn't carry
+    // across this function boundary, even though it's already guaranteed.
     cache.promise = mongoose.connect(mongoUri as string);
   }
   cache.conn = await cache.promise;

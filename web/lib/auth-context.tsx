@@ -1,10 +1,8 @@
 "use client";
 
-// Holds the admin's access token in memory only (React state) - never in
-// localStorage or a readable cookie. The refresh token lives in the
-// auth server's httpOnly cookie, invisible to this code entirely; the
-// browser attaches it automatically on every fetch to the auth server as
-// long as `credentials: "include"` is set.
+// Holds the admin's access token in memory only - never localStorage. The
+// refresh token lives in auth-server's httpOnly cookie, invisible here; the
+// browser attaches it automatically with `credentials: "include"`.
 
 import {
   createContext,
@@ -23,10 +21,8 @@ type LoginResult = { ok: true } | { ok: false; error: string };
 
 type AuthContextValue = {
   accessToken: string | null;
-  // WHY isLoading exists separately from accessToken===null: on first
-  // mount we don't yet know if the admin has a still-valid refresh cookie
-  // from a previous visit. Without this flag, the dashboard would flash a
-  // "please log in" redirect before the silent-refresh attempt even runs.
+  // Separate from accessToken===null: without this, the dashboard would
+  // flash a login redirect before the silent-refresh attempt even runs.
   isLoading: boolean;
   login: (username: string, password: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
@@ -42,10 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Returns the new access token on success (and updates state), or null
-  // on failure. Returning the value directly - not just relying on state -
-  // means callers can use the fresh token immediately without waiting for
-  // a re-render, which matters for the retry-once logic in authFetch.
+  // Returns the token directly, not just via state, so authFetch's
+  // retry-once logic can use it immediately without waiting for a re-render.
   async function refreshSilently(): Promise<string | null> {
     try {
       const res = await fetch(`${AUTH_SERVER_URL}/refresh`, {
@@ -66,16 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // WHY a named inner function, not just `refreshSilently().finally(...)`
-    // directly in the effect body: calling setState as the effect's own
-    // first synchronous action is flagged by React's rules (it can trigger
-    // cascading renders). Wrapping it means the setState calls only happen
-    // after the awaited work resolves, which is the correct async pattern.
+    // Named inner function so setState only runs after the awaited work
+    // resolves, not as the effect's own first synchronous action.
     async function attemptSilentRefresh() {
-      // WHY run this once on mount: it's the "silent refresh flow" from
-      // DEFIBRILLATOR_PROJECT_BRIEF.md §8 Phase 6 - if the admin already has
-      // a valid refresh cookie from an earlier session, this restores them
-      // without asking for a password again.
+      // Runs once on mount: restores a session from an existing valid
+      // refresh cookie without asking for a password again.
       await refreshSilently();
       setIsLoading(false);
     }

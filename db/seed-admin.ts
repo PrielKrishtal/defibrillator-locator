@@ -1,8 +1,5 @@
-// One-off script: creates (or resets) the single seed admin account the
-// assignment spec requires - username "micha", password "1234". Run with
-// `npm run seed:admin` after schema.sql has been applied and db/.env is
-// filled in. Never run this against the real password in a real system -
-// it exists only because the assignment hands us this exact credential.
+// One-off script: creates/resets the seed admin ("micha" / "1234", per the
+// assignment spec). Run `npm run seed:admin` after schema.sql + db/.env.
 
 import "dotenv/config";
 import bcrypt from "bcrypt";
@@ -26,9 +23,8 @@ async function seedAdmin() {
   // plaintext, and bcrypt bakes its own random salt into the output hash.
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
 
-  // WHY: upsert on username, not insert, so re-running this script (e.g.
-  // after rotating the seed password) resets the existing row instead of
-  // failing on the UNIQUE constraint or creating a duplicate admin.
+  // Upsert, not insert, so re-running this resets the row instead of
+  // hitting the UNIQUE constraint.
   const { error } = await supabase
     .from("admins")
     .upsert(

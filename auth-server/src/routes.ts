@@ -26,10 +26,8 @@ export const authRouter = Router();
 // refresh (read) and logout (clear) can't drift apart.
 const REFRESH_COOKIE_NAME = "refreshToken";
 
-// Cookie flags in one place. httpOnly keeps the refresh token out of reach of
-// page JavaScript (so an XSS bug can't read it). Secure + SameSite=None are
-// required for the cross-site prod setup (Vercel frontend -> Render backend);
-// locally the two are same-site over http, where Lax + non-Secure is correct.
+// httpOnly keeps this out of reach of page JS. Secure+SameSite=None for the
+// cross-site prod setup; Lax+non-secure locally (same-site over http).
 function refreshCookieOptions() {
   return {
     httpOnly: true,
@@ -40,11 +38,8 @@ function refreshCookieOptions() {
   };
 }
 
-// WHY 10 attempts per 15 minutes, per IP: generous enough that a real admin
-// mistyping their password a few times isn't locked out, but tight enough to
-// make guessing the password impractically slow on top of bcrypt's own
-// deliberate slowness. express-rate-limit tracks this in memory per server
-// instance - fine for this project's single Render instance.
+// 10/15min per IP: generous for a real typo, tight enough to slow guessing.
+// In-memory per instance - fine for this project's single Render instance.
 const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -87,10 +82,8 @@ authRouter.post("/login", loginRateLimiter, async (req: Request, res: Response) 
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  // WHY the try/catch here specifically: storeJti/deleteExpiredForAdmin throw
-  // on a Supabase failure, and Express 4 doesn't catch rejections thrown from
-  // an async route handler on its own - without this, a DB hiccup here would
-  // leave the request hanging with no response at all instead of a clean 500.
+  // Express 4 won't catch a rejection thrown from an async handler on its
+  // own - without this try/catch, a DB hiccup here hangs instead of 500ing.
   try {
     // Tidy this admin's expired token rows before issuing a fresh one.
     await deleteExpiredForAdmin(admin.id);

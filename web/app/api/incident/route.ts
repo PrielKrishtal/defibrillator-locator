@@ -1,11 +1,6 @@
-// POST /api/incident: the geo-fence. Given a distress-call point {lat,lng},
-// return the registered devices within the admin-configured alert radius,
-// nearest first. Public - a passerby reporting an incident has no login.
-//
-// The radius comes from the Phase 6 admin setting (getRadiusMeters), not the
-// request, so there's one source of truth: change it in the dashboard and
-// this endpoint's geo-fence changes with it. It's echoed back in the
-// response so the map can draw the matching circle.
+// POST /api/incident: the geo-fence. Given {lat,lng}, returns registered
+// devices within the admin-configured radius, nearest first. Public. Radius
+// comes from getRadiusMeters (one source of truth), echoed back for the map.
 
 import { NextRequest, NextResponse } from "next/server";
 import { connectToMongo } from "@/lib/mongodb";
@@ -38,10 +33,8 @@ export async function POST(req: NextRequest) {
     await connectToMongo();
     const devices = await Device.find({}).lean();
 
-    // Straight-line geo-fence: attach each device's distance from the
-    // incident, keep only those within the radius, nearest first. O(n) over
-    // ~50 devices - simpler and easier to defend than a Mongo $near query
-    // plus a 2dsphere index (see brief §7).
+    // Haversine distance per device, filtered to radius, nearest first.
+    // O(n) over ~50 devices - simpler to defend than $near + a 2dsphere index.
     const withinRadius = devices
       .map((d) => ({
         deviceId: d.deviceId,

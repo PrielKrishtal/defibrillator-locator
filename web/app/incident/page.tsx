@@ -26,11 +26,8 @@ const DEFAULT_INCIDENT = { lat: 32.0853, lng: 34.7818 };
 // drives the notice under the map.
 type RouteStatus = "none" | "loading" | "cycling" | "fallback";
 
-// Same three real coastline reference points db/seed-devices.ts uses to keep
-// seeded devices on land, duplicated here since web/ and db/ are separate
-// npm packages with no shared module (see that file for the full reasoning,
-// brief §11 2026-07-12). Without this, quick-simulate could land an
-// "incident" in the Mediterranean the same way ungated seed devices once did.
+// Same coastline reference points as db/seed-devices.ts, duplicated since
+// web/ and db/ share no module (see that file for the full reasoning).
 const COASTLINE_REFERENCE_SOUTH = { lat: 32.02, lng: 34.746 };
 const COASTLINE_REFERENCE_NORTH = { lat: 32.248, lng: 34.825 };
 const COASTLINE_SAFETY_MARGIN_DEG = 0.015;
@@ -44,15 +41,8 @@ function minLandLngAt(lat: number): number {
   return interpolatedCoastLng + COASTLINE_SAFETY_MARGIN_DEG;
 }
 
-// WHY sqrt(random) for the radius, not a plain random one: a uniform random
-// radius bunches points near the center (there's less area in an inner ring
-// than an outer one) - the same fix db/seed-devices.ts uses, for the same
-// reason, so the quick-simulate button lands points in the same kind of
-// spread as the seeded devices themselves.
-//
-// WHY retry instead of clamp on a sea landing: same reasoning as
-// db/seed-devices.ts - clamping would pile rejected points along one edge
-// instead of keeping an even spread.
+// Same sqrt(random)-radius and retry-on-sea-landing logic as
+// db/seed-devices.ts, and for the same reasons - see that file.
 function randomPointNearDeviceCluster(): { lat: number; lng: number } {
   const maxRadiusMeters = 15000;
   const earthRadiusMeters = 6371000;
@@ -108,11 +98,8 @@ function formatMinutesSeconds(totalSeconds: number): string {
 }
 
 export default function IncidentPage() {
-  // WHY null, not DEFAULT_INCIDENT: an incident only exists once the user
-  // does something (click or quick-simulate) - starting from a real
-  // coordinate made the page treat page-load itself as an already-active
-  // incident, which is also why the golden-window timer used to start
-  // ticking before anyone had done anything.
+  // null, not DEFAULT_INCIDENT: an incident only exists once the user acts -
+  // defaulting to a real coordinate made page-load itself count as one.
   const [incident, setIncident] = useState<{ lat: number; lng: number } | null>(
     null
   );
@@ -126,10 +113,8 @@ export default function IncidentPage() {
     number | null
   >(null);
 
-  // The golden-window clock: incidentSetAt starts null (no incident, no
-  // clock) and is set to "now" the moment an incident point is set (click
-  // or quick-simulate); now ticks once a second so elapsedSeconds below
-  // stays live without re-fetching anything.
+  // incidentSetAt resets to "now" whenever a new incident is set; now ticks
+  // every second so elapsedSeconds stays live without re-fetching.
   const [incidentSetAt, setIncidentSetAt] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -141,11 +126,8 @@ export default function IncidentPage() {
   const elapsedSeconds =
     incidentSetAt !== null ? Math.floor((now - incidentSetAt) / 1000) : 0;
 
-  // WHY reset the clock here, in the same event handler that sets the
-  // incident, instead of an effect keyed on `incident`: Date.now() is an
-  // impure read (React's rules forbid impure calls during render/effects
-  // meant to stay pure), but a plain event handler has no such restriction -
-  // it only ever runs in response to an actual click or button press.
+  // Reset here, in the event handler, not an effect: Date.now() is impure
+  // (disallowed in render/effects) but fine in a plain event handler.
   function setIncidentAndResetClock(lat: number, lng: number) {
     setIncident({ lat, lng });
     const timestamp = Date.now();
@@ -170,10 +152,8 @@ export default function IncidentPage() {
     // the previous fetch chain finishes, the stale one bails out instead of
     // overwriting fresh state.
     let cancelled = false;
-    // WHY this const: TypeScript's null-narrowing from the guard above
-    // doesn't carry into a nested function's later statements, only its
-    // first use - capturing the narrowed value once here keeps every
-    // reference below correctly typed as non-null.
+    // Captures the null-narrowed value: TS's narrowing from the guard above
+    // doesn't carry into this nested function's later statements.
     const activeIncident = incident;
 
     async function loadIncident() {
@@ -264,19 +244,12 @@ export default function IncidentPage() {
         קריאת GPS אמיתית.
       </p>
 
-      {/* WHY the timer (and, once it exists, the ETA next to it) sits here
-          rather than below the map: both need to be visible immediately
-          without scrolling, and elapsed time vs. ETA are meant to be read
-          together against the golden-window thresholds, not as two
-          separate, distant numbers. flex-wrap keeps this from overflowing
-          on a narrow phone screen once both pieces of text are present. */}
+      {/* Timer + ETA sit here, not below the map, so both are visible
+          without scrolling and readable together. flex-wrap for phones. */}
       <div className="flex flex-wrap items-center gap-4">
-        {/* WHY text-lg only, not a padding override too: Button's own BASE
-            string already sets px-4/py-2 - adding another class for the
-            same property would leave two rules targeting the same padding,
-            and which one wins depends on Tailwind's internal build order,
-            not the order written here. text-lg doesn't collide with
-            anything BASE sets. */}
+        {/* text-lg only, not a padding override: Button's BASE already
+            sets px-4/py-2, and Tailwind's build order, not write order,
+            decides between two rules for the same property. */}
         <Button variant="dark" className="text-lg" onClick={handleQuickSimulate}>
           הדמיה
         </Button>
@@ -327,11 +300,9 @@ export default function IncidentPage() {
 
       <MapLegend />
 
-      {/* WHY gated on `incident`: none of this means anything before a real
-          incident exists - the radius/device-count are all zero-ish
-          defaults otherwise, which would just be confusing to show. The
-          elapsed-time/ETA pair moved up next to the הדמיה button above;
-          this section is just the device-count and route-distance stats. */}
+      {/* Gated on `incident` - these are zero-ish defaults otherwise. The
+          elapsed/ETA pair lives next to the button above; this is just
+          device-count and route-distance stats. */}
       {incident && (
         <div className="flex flex-col gap-1 text-sm">
           <p>

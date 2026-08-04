@@ -14,10 +14,8 @@ export const REFRESH_TOKEN_TTL = "7d";
 // the refresh_tokens.expires_at column so all three agree on one number.
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-// The access token carries who the admin is, so protected routes don't need
-// a DB lookup to know that. WHY adminId (not the JWT-standard "sub"): the
-// jsonwebtoken types define sub as a string, and our id is a number - using
-// our own claim name sidesteps that mismatch and reads more clearly.
+// adminId, not the JWT-standard "sub": sub is typed as a string and our id
+// is a number - our own claim name sidesteps that mismatch.
 export type AccessTokenPayload = { adminId: number; username: string };
 
 // The refresh token carries only the admin id and a unique token id (jti).
@@ -36,10 +34,9 @@ export function signRefreshToken(payload: RefreshTokenPayload): string {
   });
 }
 
-// jwt.verify throws on a bad signature or an expired token - callers wrap it
-// in try/catch and answer 401. It returns `string | JwtPayload`; we always
-// sign an object, so we rule out the string case before returning our shape
-// (plus jsonwebtoken's own iat/exp fields, which we ignore).
+// jwt.verify returns string | JwtPayload; we only ever sign objects, so the
+// string case is ruled out before returning our shape. Throws on a bad
+// signature or expiry - callers catch and answer 401.
 export function verifyAccessToken(token: string): AccessTokenPayload {
   const decoded = jwt.verify(token, config.jwtAccessSecret);
   if (typeof decoded === "string") {

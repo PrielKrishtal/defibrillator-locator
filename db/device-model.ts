@@ -1,11 +1,7 @@
-// Mongoose schema for simulated LoRa/defibrillator device pings. Lives here
-// (not inside seed-devices.ts) because the Next.js API routes built in a
-// later phase read from this same collection and need the same shape.
-//
-// WHY Mongo instead of another SQL table: real devices would report
-// inconsistent fields depending on hardware revision (some have battery
-// telemetry, some don't, some report over LoRa vs cellular). A flexible
-// document schema fits that better than a rigid SQL table would.
+// Mongoose schema for simulated device pings, kept separate from
+// seed-devices.ts since web/'s API routes read this same collection/shape.
+// Mongo over SQL here: real devices would report inconsistent fields by
+// hardware revision - a flexible document fits that better than a rigid table.
 
 import mongoose from "mongoose";
 

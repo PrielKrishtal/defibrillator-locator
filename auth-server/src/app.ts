@@ -1,7 +1,5 @@
-// Builds the Express app (middleware, routes) but does NOT start listening.
-// Split out from index.ts specifically so tests can import this app and
-// start it on their own throwaway port, instead of always binding to
-// config.port - index.ts is the only file that calls app.listen().
+// Builds the app but doesn't listen() - split from index.ts so tests can
+// import it and bind their own throwaway port instead of config.port.
 
 import express from "express";
 import cors from "cors";

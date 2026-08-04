@@ -1,13 +1,7 @@
-// GET /api/route: a thin proxy to OSRM's free public routing server for a
-// cycling-profile route between two points. The incident page calls this to
-// upgrade the straight line drawn to the nearest volunteer into an actual
-// bike-path route (brief §7, item #10).
-//
-// WHY proxy through our own server instead of the browser calling OSRM
-// directly: §7 says to call it "from a Next.js API route", it avoids any
-// browser CORS issue with the public OSRM host, and it lets us put a timeout
-// around a third-party service we don't control so a slow OSRM can't hang
-// the request forever.
+// GET /api/route: thin proxy to OSRM's public cycling-route API, upgrading
+// the incident page's straight line to a real bike-path route (brief §7).
+// Proxied server-side (not called from the browser) to avoid CORS and to
+// put a timeout around a third-party service we don't control.
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -36,11 +30,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // OSRM wants lng,lat order in the path (GeoJSON convention), and the query
-  // param is `geometries` (plural) - the brief's `geometry=geojson` is
-  // ignored by OSRM and would return an encoded polyline instead of the
-  // GeoJSON coordinates we need. `overview=full` gives the detailed path,
-  // not a simplified one.
+  // `geometries` (plural), not the brief's `geometry` - OSRM silently
+  // ignores the wrong param name and returns an encoded polyline instead.
   const osrmUrl =
     `https://router.project-osrm.org/route/v1/cycling/` +
     `${fromLng},${fromLat};${toLng},${toLat}` +

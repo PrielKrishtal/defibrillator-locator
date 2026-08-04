@@ -4,11 +4,8 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-// WHY these are duplicated here instead of read from globals.css: Leaflet's
-// SVG renderer (circleMarker/circle) takes literal color strings for its
-// `color`/`fillColor` options, not CSS classes - these must be kept in sync
-// by hand with the --color-* tokens in globals.css. The divIcon below (the
-// one DOM-based marker) uses the real Tailwind classes instead.
+// Duplicated from globals.css's --color-* tokens: Leaflet's SVG renderer
+// takes literal color strings, not CSS classes, so these need manual sync.
 const COLOR = {
   signal: "#175c52",
   flare: "#c4432a",
@@ -58,10 +55,9 @@ type IncidentMapProps = {
   onMapClick: (lat: number, lng: number) => void;
 };
 
-// Leaflet touches `window` at import time, so this whole component is loaded
-// client-only (via next/dynamic ssr:false on the page). It drives Leaflet
-// imperatively - the React-idiomatic way would be react-leaflet, but vanilla
-// Leaflet keeps every map operation an explicit, defensible call.
+// Leaflet touches `window` at import time, so this is client-only (next/
+// dynamic ssr:false). Drives Leaflet imperatively rather than via
+// react-leaflet, so every map operation is an explicit, defensible call.
 export default function IncidentMap({
   incident,
   initialCenter,
@@ -77,13 +73,9 @@ export default function IncidentMap({
   // redrawing means clearing this group and repopulating, rather than
   // tracking each layer individually.
   const overlayRef = useRef<L.LayerGroup | null>(null);
-  // The click callback lives in a ref so the map's click handler (bound once
-  // on mount) always calls the latest version without re-creating the map.
-  // WHY updated in an effect, not directly in the render body: mutating a
-  // ref while rendering is unsafe under React's rules (a render can be
-  // discarded without committing, but the mutation would already have
-  // happened) - an effect with no dependency array runs after every commit
-  // instead, which is the safe equivalent of "always keep this current."
+  // Click callback lives in a ref so the mount-once click handler always
+  // calls the latest version. Updated in an effect, not during render:
+  // mutating a ref while rendering is unsafe under React's rules.
   const onMapClickRef = useRef(onMapClick);
   useEffect(() => {
     onMapClickRef.current = onMapClick;
@@ -136,10 +128,8 @@ export default function IncidentMap({
       }).addTo(overlay);
     }
 
-    // Devices outside the radius, drawn muted first so the in-range set
-    // (drawn next, in full color) visibly stands out against them - this is
-    // what makes the geofence's effect legible rather than only ever
-    // showing devices that already passed the filter.
+    // Muted out-of-range devices drawn first so the in-range set (next,
+    // full color) visibly stands out against them.
     const inRangeIds = new Set(devicesInRange.map((d) => d.deviceId));
     allDevices
       .filter((d) => !inRangeIds.has(d.deviceId))
@@ -155,12 +145,9 @@ export default function IncidentMap({
           .addTo(overlay);
       });
 
-    // Devices in range. The nearest (devicesInRange[0], since the API sorts
-    // by distance) gets a larger dot since it's the one being routed to.
-    // hasLora devices additionally get an outer ring in the beacon color -
-    // a broadcast-ring motif, not just a different color, so the LoRa/
-    // non-LoRa distinction reads even for someone who can't distinguish the
-    // two hues.
+    // Nearest device (index 0, API sorts by distance) gets a larger dot.
+    // hasLora devices get an outer ring too - a shape distinction, not just
+    // color, so it reads for anyone who can't distinguish the two hues.
     devicesInRange.forEach((device, index) => {
       const isNearest = index === 0;
       const dotRadius = isNearest ? 8 : 6;
@@ -188,11 +175,8 @@ export default function IncidentMap({
         .addTo(overlay);
     });
 
-    // The incident marker itself: an L.marker with a divIcon, not a
-    // circleMarker like everything else - it's the one element on the map
-    // with motion (the pulse ring), which needs real DOM/CSS, not SVG.
-    // Skipped when there's no incident yet, for the same reason as the
-    // circle above.
+    // divIcon, not circleMarker: the pulse ring needs real DOM/CSS, not SVG.
+    // Skipped with no incident, same as the circle above.
     if (incident) {
       const incidentIcon = L.divIcon({
         className: "incident-icon",
@@ -212,44 +196,25 @@ export default function IncidentMap({
         .addTo(overlay);
     }
 
-    // The path to the nearest device, in the beacon color - the same color
-    // as the LoRa ring, since both represent "a signal in motion toward
-    // someone." This same polyline shows either the straight-line fallback
-    // or the OSRM cycling route; the page swaps the coordinates in
-    // `routePath`, so the map just draws whatever it's given.
+    // Beacon color, same as the LoRa ring ("a signal in motion"). Draws
+    // whatever routePath holds - straight-line fallback or real OSRM route.
     if (routePath && routePath.length > 0) {
       L.polyline(routePath, { color: COLOR.beacon, weight: 4 }).addTo(overlay);
     }
   }, [incident, radiusMeters, devicesInRange, allDevices, routePath]);
 
-  // Pan/zoom so the incident and its whole radius circle are visible
-  // without the user having to zoom out manually - a click near the edge
-  // of the current view (or a quick-simulate point on the far side of the
-  // 15km scatter) could otherwise land outside what's on screen. Every
-  // in-range device is guaranteed to be within this circle by definition,
-  // so fitting to it also brings the routed device into view; an OSRM
-  // cycling route can occasionally jut slightly outside it on a winding
-  // road, which is an accepted tradeoff for not having to fit to the full
-  // route geometry too.
+  // Auto-fits the view to the radius circle so a click/simulate near the
+  // scatter's edge doesn't land outside the visible map. Every in-range
+  // device is guaranteed inside this circle by definition; an OSRM route
+  // can occasionally jut slightly outside it on a winding road - accepted.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !incident) return;
-    // WHY LatLng.toBounds, not L.circle(...).getBounds(): a Circle's
-    // getBounds() projects its radius through the map it's attached to -
-    // this throwaway circle was never added to the map (no .addTo call),
-    // so it has no map to project through and Leaflet's internal code
-    // crashed reading a property off that missing reference. toBounds is
-    // pure lat/lng arithmetic with no map dependency, so it works
-    // regardless of whether anything has been added to the map yet.
+    // toBounds, not L.circle(...).getBounds(): getBounds() needs the circle
+    // attached to a map to project its radius - a throwaway unattached
+    // circle crashed Leaflet internals. toBounds is pure lat/lng math.
     const bounds = L.latLng(incident.lat, incident.lng).toBounds(radiusMeters);
-    // WHY 100px, not the smaller padding this started with: fitBounds zooms
-    // in exactly as far as it can while still fitting the circle plus this
-    // padding - a small padding value meant the view often ended up
-    // cropped tight to the circle's edge, with almost no surrounding
-    // streets/landmarks for context. A bigger padding leaves more of the
-    // map visible around the circle without changing what's guaranteed to
-    // be in view (the incident, the whole radius, and every in-range
-    // device, still all inside the same circle).
+    // 100px padding so the fit isn't cropped tight to the circle's edge.
     map.fitBounds(bounds, { padding: [100, 100] });
   }, [incident, radiusMeters]);
 

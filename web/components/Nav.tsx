@@ -1,9 +1,7 @@
 import Link from "next/link";
 
-// Shared top navigation. Site name uses font-display (the Hebrew serif) -
-// the one place in the chrome that gets it, since it's brand, not body copy.
-// Full-bleed bar (no max-width) with its own inner padding is the standard
-// header pattern - the content below it is what gets width-constrained.
+// Shared top nav. Site name uses font-display (Hebrew serif) - the one
+// place in the chrome that gets it, since it's brand, not body copy.
 export function Nav() {
   return (
     <nav className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-6 py-5 sm:px-8">

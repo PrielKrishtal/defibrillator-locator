@@ -1,8 +1,6 @@
-// GET is public: pages render this content for every visitor. PATCH is
-// admin-only: only the dashboard edits it. `key` is checked against an
-// allowlist rather than accepted as-is - PATCH is already admin-gated, but
-// this keeps the collection to a small, known set of real content slots
-// instead of an arbitrary store any typo could add a new row to.
+// GET is public, PATCH is admin-only. `key` is checked against an
+// allowlist so this stays a small, known set of content slots, not an
+// arbitrary store any typo could add a new row to.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFromRequest } from "@/lib/verify-admin";

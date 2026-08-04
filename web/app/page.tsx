@@ -32,13 +32,9 @@ function FlowMiniNode({
   );
 }
 
-// A single filled SVG shape (shaft + head as one path), not a separate line
-// element next to a triangle. Two elements of different visual weight (a
-// 1px hairline next to a bold fill) read as mismatched on their own, and on
-// this dir="rtl" page a flex row of two children also reorders them (first
-// DOM child lands on the main-start side, which is the right in RTL) - the
-// head and shaft could end up on the wrong sides of each other. One path
-// has no children to reorder and one fill, so it's immune to both problems.
+// One filled SVG path (shaft + head together), not a separate line next to
+// a triangle - two elements of different visual weight looked mismatched,
+// and RTL flex-reordering could land them on the wrong sides of each other.
 function Arrow({ direction }: { direction: "down" | "left" }) {
   if (direction === "down") {
     return (
@@ -75,10 +71,8 @@ function FlowPathCard({ children }: { children: React.ReactNode }) {
 }
 
 // Faint concentric rings behind the hero heading - the same signal-range
-// motif as the map's geofence circle and pulsing incident marker, carried
-// quietly onto the page that recruits volunteers into that same system.
-// One signature element reused site-wide beats a different treatment per
-// page. Decorative only: aria-hidden, and sized so it never crowds the text.
+// motif as the map's geofence circle, reused rather than a different
+// treatment per page. Decorative only (aria-hidden).
 function SignalRings() {
   return (
     <div
@@ -125,10 +119,8 @@ function ConceptCard({
   );
 }
 
-// This is a Server Component (no "use client"): it reads straight from
-// Mongo at request time instead of round-tripping through /api/site-content
-// itself. The admin dashboard is what calls that API route to write new
-// content - this page only ever reads.
+// A Server Component (no "use client"): reads straight from Mongo instead of
+// round-tripping through /api/site-content - the dashboard is what writes.
 export default async function Home() {
   const intro = await getSiteContent(HOMEPAGE_INTRO_KEY, DEFAULT_HOMEPAGE_INTRO);
   const whyVolunteer = await getSiteContent(
@@ -157,10 +149,8 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* WHY this section sits directly after the hero, not lower down: the
-          assignment requires the LoRa/distress-flow diagram on the homepage
-          specifically (not just somewhere on the site), so it stays close
-          to the top rather than trailing after the concept cards below. */}
+      {/* Sits right after the hero, not lower: the assignment requires this
+          flow diagram on the homepage specifically, not just on the site. */}
       <section className="flex flex-col items-center gap-6">
         <h2 className="text-center font-display text-2xl font-medium">
           איך קריאת מצוקה מגיעה למתנדב

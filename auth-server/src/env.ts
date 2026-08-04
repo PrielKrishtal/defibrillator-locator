@@ -1,13 +1,9 @@
-// Loads and validates every environment variable the auth server needs,
-// once, at startup. Reading process.env in one place (instead of scattered
-// through the code) means a missing secret fails loudly here on boot rather
-// than as a confusing error deep inside a request handler.
+// Reads every required env var once at startup - a missing secret fails
+// loudly here instead of deep inside a request handler.
 
 import "dotenv/config";
 
-// WHY: throw immediately if a required var is missing, so a misconfigured
-// deploy never starts up half-working (e.g. issuing tokens with an undefined
-// secret, which jsonwebtoken would happily do).
+// Throws immediately if missing, so a bad deploy never starts up half-working.
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {

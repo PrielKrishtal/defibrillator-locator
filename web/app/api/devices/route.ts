@@ -1,9 +1,6 @@
-// GET /api/devices: every simulated device, unfiltered - the route §6
-// originally planned. The incident map uses this to show the full
-// registered population (muted, for context) alongside the in-range subset
-// /api/incident computes, so a viewer can see the geofence actually working
-// rather than only ever seeing devices that already passed the filter.
-// Public - this is reference data, not admin-only.
+// GET /api/devices: every simulated device, unfiltered. Public reference
+// data - the incident map shows this muted alongside the in-range subset
+// so the geofence's filtering effect is visible.
 
 import { NextResponse } from "next/server";
 import { connectToMongo } from "@/lib/mongodb";

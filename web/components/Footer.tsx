@@ -1,20 +1,13 @@
-// Sitewide footer: the external links §2 requires everywhere on the site,
-// not just the homepage - MDA's defibrillator map, and 3 real LoRa 433MHz
-// purchase sites. All open in a new tab (they're leaving the site).
-//
-// All 3 purchase links below were confirmed live, in stock, and genuinely
-// 433MHz by direct fetch (not just a search-result snippet) on 2026-07-12 -
-// the original Amazon link went dead stock ("Currently unavailable")
-// shortly after Phase 9 shipped, which is exactly the risk of trusting a
-// single retailer's listing to stay valid. See brief §11 for the full story.
+// Sitewide footer: the external links §2 requires everywhere, not just the
+// homepage - MDA's map + 3 real LoRa 433MHz purchase sites. All 3 links
+// were confirmed live/in-stock/433MHz by direct fetch on 2026-07-12, after
+// the original Amazon link went dead stock (brief §11 has the full story).
 const EXTERNAL_LINK_CLASSES = "text-signal hover:underline";
 
 export function Footer() {
   return (
-    // WHY bg-line/20: a tinted overlay of the existing `line` token (already
-    // used for borders) rather than a new color - just enough to read as a
-    // distinct footer region against the page's paper background, without
-    // adding a whole new token for one small tweak.
+    // bg-line/20: a tinted overlay of the existing `line` token, not a new
+    // color, just enough to read as a distinct region.
     <footer className="border-t border-line bg-line/20 px-6 py-8 text-sm sm:px-8">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
         <div className="flex flex-col gap-2">
@@ -25,11 +18,8 @@ export function Footer() {
             rel="noopener noreferrer"
             className={EXTERNAL_LINK_CLASSES}
           >
-            {/* WHY this label, not "המפה של מד״א": the map isn't hosted on
-                mda.org.il itself - it's the community-mapping site MDA's own
-                101 dispatch center actually uses on-screen (see brief §11,
-                2026-07-11). Accurate labeling matters more than a shorter
-                sentence. */}
+            {/* Not "המפה של מד״א": it's the community map MDA's own 101
+                dispatch center actually uses, not an MDA-hosted property. */}
             איפה דפי? - המפה בה משתמש מוקד מד״א לאיתור דפיברילטורים
           </a>
         </div>
@@ -66,11 +56,8 @@ export function Footer() {
           </div>
         </div>
 
-        {/* WHY border-t but full-opacity ink and bold, not muted: still
-            separated from the MDA/purchase links above by the divider, but
-            meant to be read clearly, not blend into the background - ink
-            is the site's own dark-text token (not raw black), so this
-            stays inside the same palette as everything else. */}
+        {/* Full-opacity ink and bold, not muted, so this reads clearly
+            rather than blending in - ink is the site's own dark-text token. */}
         <div className="border-t border-line pt-4 text-base font-bold text-ink">
           פותח על ידי Priel Krishtal | פרויקט גמר, קורס פיתוח WEB
         </div>

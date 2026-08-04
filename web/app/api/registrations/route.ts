@@ -1,7 +1,5 @@
-// POST is the public registration endpoint (§6: "POST /api/registrations -
-// write to Supabase"), reachable by anyone, no login required - that's the
-// assignment's own rule ("no password required for a public registrant").
-// GET is admin-only: the dashboard's registrations list.
+// POST is public (§6/§2: no password for a public registrant). GET is
+// admin-only: the dashboard's registrations list.
 
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
@@ -9,19 +7,14 @@ import { getAdminFromRequest } from "@/lib/verify-admin";
 import { parseRegistration } from "@/lib/validate-registration";
 import { isRateLimited } from "@/lib/rate-limit";
 
-// WHY 5 per minute: no legitimate visitor submits this form more than a
-// couple of times a minute; this just blocks scripted spam without needing
-// a CAPTCHA. Public + unauthenticated is exactly the kind of endpoint worth
-// rate limiting, since anyone can hit it.
+// 5/min: no legitimate visitor submits this more than a couple times a
+// minute - blocks scripted spam without needing a CAPTCHA.
 const REGISTER_MAX_REQUESTS = 5;
 const REGISTER_WINDOW_MS = 60 * 1000;
 
 export async function POST(req: NextRequest) {
-  // WHY x-forwarded-for: Vercel (and most hosts) sit in front of the app as
-  // a proxy and record the real client IP in this header; a request can list
-  // several IPs (one per proxy hop), so the first one is the original
-  // client. "unknown" is a safe fallback for local dev, where every request
-  // just shares one bucket.
+  // x-forwarded-for: the proxy in front records the real client IP here,
+  // first entry if there are several hops. "unknown" is the local-dev fallback.
   const forwardedFor = req.headers.get("x-forwarded-for");
   const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "unknown";
   if (isRateLimited(ip, REGISTER_MAX_REQUESTS, REGISTER_WINDOW_MS)) {

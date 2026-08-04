@@ -1,7 +1,5 @@
-// Shared Supabase client for Next.js API routes. Uses the service-role key
-// because these routes run only on the server (Route Handlers, never
-// shipped to the browser) and need to read/write registrations regardless
-// of row-level security.
+// Shared Supabase client, service-role key: these routes run server-only
+// and need to read/write registrations regardless of row-level security.
 
 import { createClient } from "@supabase/supabase-js";
 

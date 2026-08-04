@@ -1,12 +1,7 @@
-// Guards Next.js API routes that only an admin should reach (registrations
-// management, radius/marketing-copy edits). Verifies the access token
-// in-process rather than calling the auth server's /me endpoint on every
-// request: a JWT signature check needs only the shared secret - no DB
-// lookup, no network round-trip - which is the whole point of a short-lived
-// signed access token. Both servers hold the same JWT_ACCESS_SECRET (both
-// under our control), so a token the auth server signs verifies here too.
-// This file must stay in sync with auth-server/src/tokens.ts's
-// AccessTokenPayload shape, since both sign/verify the same token format.
+// Guards admin-only Next.js API routes. Verifies the access token
+// in-process (signature check only, no DB/network call) instead of calling
+// auth-server's /me - both servers share JWT_ACCESS_SECRET. Must stay in
+// sync with auth-server/src/tokens.ts's AccessTokenPayload shape.
 
 import jwt from "jsonwebtoken";
 import { NextRequest } from "next/server";

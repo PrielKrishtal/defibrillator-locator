@@ -1,18 +1,12 @@
 @import "tailwindcss";
 
-/* WHY class-based, not the default `media` strategy: Tailwind's dark: variant
-   otherwise auto-flips on the OS's prefers-color-scheme, which would fight
-   this site's deliberate light-only palette below on any device set to dark
-   mode. No .dark class is ever added anywhere, so every `dark:` utility
-   already written in Phase 5/6 files becomes inert rather than needing to be
-   hunted down and removed - see DEFIBRILLATOR_PROJECT_BRIEF.md §11
-   (2026-07-11, Phase 8 design system). */
+/* Class-based, not the default media strategy: dark: would otherwise
+   auto-flip on OS prefers-color-scheme, fighting this light-only palette.
+   No .dark class is ever added, so existing dark: utilities go inert. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Design tokens. Named for what each color means in this specific system
-   (LoRa signal, emergency flare, radio beacon) rather than generic
-   primary/secondary/accent - see brief §10.6 for the direction and §11 for
-   the full reasoning. */
+/* Design tokens, named for what each color means (signal/flare/beacon)
+   rather than generic primary/secondary/accent. */
 @theme inline {
   --color-paper: #f4f6f5; /* background: cool off-white, not stark white */
   --color-ink: #1c2321; /* body text: near-black with a slight warmth */
@@ -37,10 +31,8 @@ body {
   color: var(--color-foreground);
 }
 
-/* The incident marker's pulse - the one deliberate motion moment on the
-   site, marking the single most urgent point on the map. Respects
-   prefers-reduced-motion since a quality UI doesn't force animation on
-   people who've asked their OS to avoid it. */
+/* The incident marker's pulse - the one deliberate motion on the site.
+   Respects prefers-reduced-motion. */
 @keyframes signal-pulse {
   0% {
     transform: scale(0.6);

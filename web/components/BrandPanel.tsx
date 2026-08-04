@@ -1,12 +1,8 @@
 import { SignalIcon, RegisterIcon, IncidentIcon } from "./icons";
 
-// The visual half of the split-screen auth pages (register, admin login).
-// A narrow centered card alone left most of a wide screen empty; this fills
-// that space with real on-brand content instead of a stock photo - there
-// are no actual product photos/logo assets for this project, so the same
-// signal-ring motif used on the map and homepage does the same job a hero
-// image would, for free. Hidden below the lg breakpoint - on a narrow
-// screen there's no spare width for it to fill in the first place.
+// Visual half of the split-screen auth pages - fills the empty space a
+// narrow centered card would leave, using the site's own signal-ring motif
+// in place of a stock photo. Hidden below lg (no spare width there).
 export function BrandPanel() {
   return (
     <div className="relative hidden flex-1 flex-col items-center justify-center gap-10 overflow-hidden bg-signal p-12 text-paper lg:flex">

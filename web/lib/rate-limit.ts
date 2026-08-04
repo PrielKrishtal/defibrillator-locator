@@ -1,14 +1,6 @@
-// A minimal in-memory rate limiter. WHY hand-rolled instead of a library
-// like express-rate-limit: that library only attaches to a real Express
-// app, and this is a Next.js Route Handler (a different runtime with no
-// Express middleware chain) - a small self-contained version avoids
-// pulling in a mismatched dependency for one endpoint.
-//
-// WHY in-memory, not a shared store: this is a single-instance course
-// project, not a multi-server production deployment. A plain Map is simple
-// to explain and resets harmlessly on redeploy - it just wouldn't work
-// correctly if the app ever ran as multiple server instances behind a load
-// balancer, which is a real limitation, not a concern here.
+// Minimal in-memory rate limiter, hand-rolled since express-rate-limit only
+// attaches to an Express app, not a Next.js Route Handler. In-memory Map is
+// fine for this single-instance project; wouldn't work behind a load balancer.
 
 type RateLimitEntry = { count: number; resetAt: number };
 

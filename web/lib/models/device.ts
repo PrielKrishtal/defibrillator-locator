@@ -1,8 +1,6 @@
-// Mongoose model for the simulated LoRa/defibrillator devices seeded in
-// Phase 2 (db/seed-devices.ts). web/ is a separate npm package from db/, so
-// it declares its own model against the same `devices` collection rather
-// than importing across package boundaries (which Next's bundler dislikes).
-// The schema shape must match what the seed script wrote.
+// Mongoose model for the devices db/seed-devices.ts seeds. web/ is a
+// separate npm package from db/, so it declares its own model against the
+// same collection rather than importing across package boundaries.
 
 import mongoose from "mongoose";
 

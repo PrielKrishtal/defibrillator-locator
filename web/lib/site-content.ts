@@ -1,7 +1,5 @@
-// Read/write helpers for the site_setting collection. Callers never touch
-// the model directly - this file is the one place that knows the fallback
-// values, so a fresh install (no admin edits yet) still shows sensible
-// Hebrew content instead of a blank page.
+// Read/write helpers for site_setting - the one place that knows fallback
+// values, so a fresh install still shows sensible content instead of blank.
 
 import { connectToMongo } from "./mongodb";
 import { SiteSetting } from "./models/site-setting";

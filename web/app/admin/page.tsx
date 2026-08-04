@@ -68,12 +68,9 @@ export default function AdminDashboardPage() {
     }
   }, [isLoading, accessToken, router]);
 
-  // WHY authFetch is a real dependency here, not suppressed: authFetch is a
-  // fresh closure every AuthProvider render, and it reads the current
-  // accessToken from that closure. An empty dependency array would freeze
-  // this callback to whichever authFetch existed at the very first render -
-  // before login even resolves - so every request it makes would carry no
-  // Authorization header at all and silently 401 forever.
+  // authFetch is a real dependency, not suppressed: it's a fresh closure
+  // per render holding the current token - an empty array would freeze it
+  // to the pre-login version and silently 401 forever.
   const loadRegistrations = useCallback(async () => {
     const res = await authFetch("/api/registrations");
     if (res.ok) {
@@ -85,11 +82,8 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (!accessToken) return;
 
-    // WHY a named inner function: calling setState as the effect's own
-    // first synchronous action (as `loadRegistrations()` directly would be)
-    // is flagged by React's rules. Wrapping the whole load sequence means
-    // every setState call happens after an awaited fetch, the correct async
-    // pattern.
+    // Named inner function so every setState happens after an awaited
+    // fetch, not as the effect's own first synchronous action.
     async function loadDashboardData() {
       await loadRegistrations();
       const radiusRes = await fetch("/api/settings/radius");
@@ -158,10 +152,8 @@ export default function AdminDashboardPage() {
     router.push("/admin/login");
   }
 
-  // WHY this early return: isLoading covers the initial silent-refresh
-  // attempt, and !accessToken covers the moment between "refresh failed"
-  // and the redirect effect above actually firing - both should show a
-  // neutral loading state instead of a flash of an empty dashboard.
+  // isLoading covers the silent-refresh attempt; !accessToken covers the
+  // gap before the redirect effect fires - both show a neutral loading state.
   if (isLoading || !accessToken) {
     return (
       <main className="flex flex-1 items-center justify-center p-8">
@@ -237,13 +229,9 @@ export default function AdminDashboardPage() {
         <h2 className="font-display text-lg font-medium">
           מכשירי השדה המדומים ({devices.length})
         </h2>
-        {/* WHY max-h + overflow-y here, unlike the registrations table
-            above: with 50 seeded devices (vs. however many real
-            registrants), an unbounded table would push the rest of the
-            dashboard far down the page - a fixed height with its own
-            scrollbar keeps the page layout the same regardless of fleet
-            size. The sticky header keeps the column labels visible while
-            scrolling through it. */}
+        {/* Fixed height + own scrollbar, unlike the registrations table
+            above: 50 seeded devices would otherwise push the page down.
+            Sticky header keeps labels visible while scrolling. */}
         <div className="max-h-96 overflow-x-auto overflow-y-auto">
           <table className="w-full min-w-100 text-sm">
             <thead>

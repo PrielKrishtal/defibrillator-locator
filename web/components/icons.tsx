@@ -1,8 +1,5 @@
-// A small icon set built entirely from the site's own visual language
-// (concentric rings, simple strokes, the map's own pulse animation) instead
-// of pulling in an icon library - three icons don't justify a new
-// dependency, and building them this way keeps them visually part of the
-// same system as the map rather than a mismatched, generic icon set.
+// Hand-built icon set matching the site's own visual language (concentric
+// rings, the map's pulse animation) instead of an icon library dependency.
 
 export function SignalIcon({ className }: { className?: string }) {
   // Concentric rings + center dot: LoRa/radio broadcast, the same shape as

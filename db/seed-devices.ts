@@ -1,7 +1,5 @@
-// One-off script: fills the devices collection with ~50 fake defibrillator
-// / LoRa devices scattered around central Israel, so the incident-page
-// geo-fencing (built in a later phase) has something realistic to query
-// against before any real registrant exists. Run with `npm run seed:devices`.
+// One-off script: fills the devices collection with ~50 fake defibrillator/
+// LoRa devices around central Israel. Run with `npm run seed:devices`.
 
 import "dotenv/config";
 import mongoose from "mongoose";
@@ -15,16 +13,13 @@ const DEVICE_COUNT = 50;
 const CENTER_LAT = 32.0853;
 const CENTER_LNG = 34.7818;
 
-// WHY 15km: wide enough that devices spread across several towns (so a
-// configurable radius parameter in the simulator has something to show),
-// narrow enough that they stay in the Tel Aviv metro area, not the desert.
+// 15km: wide enough to span several towns (gives the radius setting
+// something to show), narrow enough to stay in the metro area.
 const MAX_RADIUS_METERS = 15000;
 const EARTH_RADIUS_METERS = 6371000;
 
-// WHY: picking a uniformly random angle and radius on their own would
-// bunch points near the center (there's less area in an inner ring than
-// an outer one). Taking sqrt(random) for the radius corrects for that so
-// points spread evenly across the whole circle's area.
+// sqrt(random) for the radius: a plain random radius bunches points near
+// the center (less area in an inner ring) - this spreads them evenly.
 function randomPointNear(centerLat: number, centerLng: number, maxRadiusMeters: number) {
   const radius = maxRadiusMeters * Math.sqrt(Math.random());
   const angle = Math.random() * 2 * Math.PI;
@@ -40,24 +35,14 @@ function randomPointNear(centerLat: number, centerLng: number, maxRadiusMeters: 
   };
 }
 
-// Tel Aviv's coastline sits only ~1.5km west of the scatter center, so a
-// plain uniform disk regularly lands points in the Mediterranean - visibly
-// wrong for "portable defibrillator devices" on the map.
-//
-// WHY a latitude-dependent line, not a flat longitude cutoff (two flat
-// values were tried first - 34.77, then 34.80 - and both still let points
-// land in the sea near the scatter's northern edge): the coast angles
-// northeast up the Sharon plain, not straight north-south. Real reference
-// points confirm a consistent slope across the whole scatter radius (see
-// brief §11, 2026-07-12): Bat Yam (south) sits at ~34.746, central Tel Aviv
-// at ~34.766, Ga'ash Beach (north, near the scatter's edge) at ~34.825.
-// Interpolating a line through these fits all three well, unlike a single
-// number that can only ever be correct at one latitude.
+// Keeps devices out of the Mediterranean. A flat longitude cutoff (tried at
+// 34.77, then 34.80) kept failing because the coast angles northeast, not
+// north-south - a single number is only ever right at one latitude. This
+// interpolates a line through two real reference points instead (see brief
+// §11, 2026-07-12); the margin absorbs their imprecision as named places,
+// not surveyed coastline vertices.
 const COASTLINE_REFERENCE_SOUTH = { lat: 32.02, lng: 34.746 }; // Bat Yam
 const COASTLINE_REFERENCE_NORTH = { lat: 32.248, lng: 34.825 }; // Ga'ash Beach
-// WHY a margin on top of the interpolated line at all: these are named-place
-// reference points, not surveyed coastline vertices, so a small buffer
-// absorbs that imprecision rather than sitting exactly on the estimated edge.
 const COASTLINE_SAFETY_MARGIN_DEG = 0.015; // roughly 1.5km
 
 function minLandLngAt(lat: number): number {
@@ -69,10 +54,8 @@ function minLandLngAt(lat: number): number {
   return interpolatedCoastLng + COASTLINE_SAFETY_MARGIN_DEG;
 }
 
-// WHY retry instead of clamping a too-far-west point to the coastline:
-// clamping would pile every rejected point along one straight edge; a
-// fresh random redraw keeps the "spread evenly over an area" property from
-// randomPointNear intact.
+// Retries rather than clamping a too-far-west point: clamping would pile
+// rejects along one edge instead of keeping an even spread.
 function randomLandPointNear(
   centerLat: number,
   centerLng: number,
@@ -84,10 +67,8 @@ function randomLandPointNear(
       return point;
     }
   }
-  // WHY a fallback at all: 50 rejected attempts in a row essentially never
-  // happens (most of the disk is east of the coast), but returning the
-  // exact center is a safe, always-on-land default if it somehow did,
-  // rather than looping forever.
+  // 50 rejections in a row essentially never happens - center is a safe
+  // always-on-land fallback rather than looping forever.
   return { lat: centerLat, lng: centerLng };
 }
 

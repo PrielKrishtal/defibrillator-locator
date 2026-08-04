@@ -1,8 +1,5 @@
--- Run this once in the Supabase SQL editor (or via `psql`) to create the
--- two SQL tables this project needs. Registrations is the public-facing
--- table (anyone can insert via the registration form, no auth required).
--- Admins is the auth server's user table (only the seed script and the
--- auth server touch it).
+-- Run once in the Supabase SQL editor. registrations is public-insert (the
+-- registration form); admins is auth-server's user table only.
 
 CREATE TABLE registrations (
   id SERIAL PRIMARY KEY,
@@ -25,10 +22,8 @@ CREATE TABLE admins (
   password_hash TEXT NOT NULL
 );
 
--- One row per issued refresh token. The auth server checks this table on
--- /refresh (the token's jti must still be here) and deletes the row on
--- /logout. That's what makes a refresh token revocable before it expires -
--- a signed-but-deleted token is rejected even though its signature is valid.
+-- One row per issued refresh token. /refresh checks the jti is still here;
+-- /logout deletes it - what makes a token revocable before it expires.
 CREATE TABLE refresh_tokens (
   id SERIAL PRIMARY KEY,
   -- ON DELETE CASCADE: if an admin is ever removed, their outstanding
@@ -41,10 +36,8 @@ CREATE TABLE refresh_tokens (
   created_at TIMESTAMP DEFAULT now()
 );
 
--- WHY: tables created through the SQL editor don't automatically get
--- privileges for Supabase's built-in Postgres roles (only tables created
--- through the dashboard Table Editor do). Without these grants, even the
--- service_role key gets "permission denied for table" on every query.
+-- Tables made via the SQL editor don't get default role privileges (only
+-- dashboard-created ones do) - without these, service_role gets denied.
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.registrations TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.admins TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.refresh_tokens TO service_role;

@@ -11,10 +11,8 @@ import { BrandPanel } from "@/components/BrandPanel";
 const INPUT_CLASSES =
   "rounded-lg border border-line bg-paper px-3 py-2 text-ink transition-colors focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20";
 
-// The page shell shared by both the form and the success screen: a
-// full-width split between the form column and the brand panel, instead of
-// a narrow card centered in an otherwise-empty page. Kept local to this
-// file (not extracted further) since only this page's two states need it.
+// Shared shell for the form and success screen: full-width split with the
+// brand panel, not a narrow centered card. Kept local - only this page needs it.
 function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex flex-1 flex-col lg:grid lg:grid-cols-2">
@@ -26,10 +24,8 @@ function AuthLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-// The registration form is a client component (not a Server Action) because
-// it needs to show inline validation and a success/error message without a
-// full page reload, and because §6 names this as calling a specific API
-// route ("POST /api/registrations") rather than leaving the mechanism open.
+// A client component, not a Server Action: needs inline validation/error
+// state without a reload, and §6 names a specific API route to call.
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

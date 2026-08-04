@@ -1,14 +1,7 @@
-// Generic key/value store for admin-editable site settings: the homepage
-// intro text, the simulator's default radius, and other marketing copy. One
-// schema instead of one collection per setting, since every use is the same
-// shape: a named value an admin can overwrite from the dashboard.
-//
-// WHY Mongo, not a new Supabase table: adding a Postgres table means running
-// CREATE TABLE DDL in Supabase's dashboard by hand (the client can't issue
-// DDL), whereas Mongoose creates a collection on first write with no manual
-// step. It also keeps a clean split - relational data (registrations,
-// admins) in SQL, flexible/document data (devices, arbitrary settings) in
-// Mongo.
+// Generic key/value store for admin-editable settings (homepage intro,
+// simulator radius, etc.) - one schema, not one collection per setting.
+// Mongo, not a new Supabase table: no DDL access to add a Postgres table by
+// hand, and it keeps relational data in SQL, flexible data in Mongo.
 
 import mongoose from "mongoose";
 

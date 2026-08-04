@@ -1,15 +1,10 @@
 import Link from "next/link";
 import { ButtonHTMLAttributes, ReactNode } from "react";
 
-// One place defining what a primary vs. outline action looks like, instead
-// of the same className string copied across every form and hero CTA on
-// the site. "primary" is the filled system-color action; "outline" is
-// everything secondary (logout, a second hero CTA); "outlineOnDark" is the
-// same secondary action but on a signal-colored background (the homepage's
-// closing banner) - a separate variant, not an override via extra
-// className, since two conflicting border/text utilities at equal
-// specificity would leave the winner up to Tailwind's build order, not
-// which one is written last in the class list.
+// One place defining each action style, not a className copied per call
+// site. Each look is its own variant, not an override via extra className -
+// two conflicting utilities at equal specificity leave the winner up to
+// Tailwind's build order, not which one is written last.
 const BASE =
   "rounded-lg px-4 py-2 text-center font-medium transition-colors disabled:opacity-50";
 const VARIANTS = {
