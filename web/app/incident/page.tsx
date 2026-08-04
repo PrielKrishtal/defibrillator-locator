@@ -264,11 +264,13 @@ export default function IncidentPage() {
         קריאת GPS אמיתית.
       </p>
 
-      {/* WHY the timer sits here, next to the button, not below the map:
-          it needs to be visible immediately without scrolling - that was
-          the whole point of raising it up from its old spot under the
-          map and legend. */}
-      <div className="flex items-center gap-4">
+      {/* WHY the timer (and, once it exists, the ETA next to it) sits here
+          rather than below the map: both need to be visible immediately
+          without scrolling, and elapsed time vs. ETA are meant to be read
+          together against the golden-window thresholds, not as two
+          separate, distant numbers. flex-wrap keeps this from overflowing
+          on a narrow phone screen once both pieces of text are present. */}
+      <div className="flex flex-wrap items-center gap-4">
         {/* WHY text-lg only, not a padding override too: Button's own BASE
             string already sets px-4/py-2 - adding another class for the
             same property would leave two rules targeting the same padding,
@@ -279,16 +281,37 @@ export default function IncidentPage() {
           הדמיה
         </Button>
         {incident && (
-          <p className="flex items-center gap-2 text-sm">
-            <span className="text-ink/70">זמן שחלף:</span>
-            <span
-              className={`font-mono text-lg font-medium ${
-                GOLDEN_WINDOW_TEXT_CLASS[goldenWindowLevel(elapsedSeconds)]
-              }`}
-            >
-              {formatMinutesSeconds(elapsedSeconds)}
-            </span>
-          </p>
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <p className="flex items-center gap-2">
+              <span className="text-ink/70">זמן שחלף:</span>
+              <span
+                className={`font-mono text-lg font-medium ${
+                  GOLDEN_WINDOW_TEXT_CLASS[goldenWindowLevel(elapsedSeconds)]
+                }`}
+              >
+                {formatMinutesSeconds(elapsedSeconds)}
+              </span>
+            </p>
+            {/* WHY elapsed+ETA together, not ETA alone: see goldenWindowLevel
+                above - "will help arrive in time" is elapsed time since the
+                call plus the remaining ride, not either number by itself. */}
+            {routeStatus === "cycling" && cyclingDurationSeconds !== null && (
+              <p
+                className={
+                  GOLDEN_WINDOW_TEXT_CLASS[
+                    goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds)
+                  ]
+                }
+              >
+                זמן הגעה משוער: {Math.round(cyclingDurationSeconds / 60)} דק&apos;{" "}
+                -{" "}
+                {goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds) ===
+                "red"
+                  ? "מעבר לחלון הזהב"
+                  : "בתוך חלון הזהב"}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -306,60 +329,38 @@ export default function IncidentPage() {
 
       {/* WHY gated on `incident`: none of this means anything before a real
           incident exists - the radius/device-count are all zero-ish
-          defaults otherwise, which would just be confusing to show. */}
+          defaults otherwise, which would just be confusing to show. The
+          elapsed-time/ETA pair moved up next to the הדמיה button above;
+          this section is just the device-count and route-distance stats. */}
       {incident && (
-        <>
-          {/* WHY elapsed+ETA together, not ETA alone: see goldenWindowLevel
-              above - "will help arrive in time" is elapsed time since the
-              call plus the remaining ride, not either number by itself. */}
-          {routeStatus === "cycling" && cyclingDurationSeconds !== null && (
-            <div className="rounded-lg border border-line bg-paper px-4 py-3 text-sm">
-              <p
-                className={
-                  GOLDEN_WINDOW_TEXT_CLASS[
-                    goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds)
-                  ]
-                }
-              >
-                זמן הגעה משוער: {Math.round(cyclingDurationSeconds / 60)} דק&apos;{" "}
-                -{" "}
-                {goldenWindowLevel(elapsedSeconds + cyclingDurationSeconds) ===
-                "red"
-                  ? "מעבר לחלון הזהב"
-                  : "בתוך חלון הזהב"}
-              </p>
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1 text-sm">
-            <p>
-              מכשירים בטווח ({radiusMeters} מ׳):{" "}
-              <span className="font-mono font-medium">
-                {devicesInRange.length}
-              </span>
+        <div className="flex flex-col gap-1 text-sm">
+          <p>
+            מכשירים בטווח ({radiusMeters} מ׳):{" "}
+            <span className="font-mono font-medium">
+              {devicesInRange.length}
+            </span>
+          </p>
+          {routeStatus === "cycling" && cyclingDistance !== null && (
+            <p className="text-signal">
+              מסלול רכיבה למכשיר הקרוב:{" "}
+              <span className="font-mono">
+                {(cyclingDistance / 1000).toFixed(2)}
+              </span>{" "}
+              ק״מ
             </p>
-            {routeStatus === "cycling" && cyclingDistance !== null && (
-              <p className="text-signal">
-                מסלול רכיבה למכשיר הקרוב:{" "}
-                <span className="font-mono">
-                  {(cyclingDistance / 1000).toFixed(2)}
-                </span>{" "}
-                ק״מ
-              </p>
-            )}
-            {routeStatus === "loading" && (
-              <p className="text-ink/60">טוען מסלול רכיבה...</p>
-            )}
-            {routeStatus === "fallback" && (
-              <p className="text-beacon">
-                לא ניתן לטעון מסלול רכיבה כרגע, מוצג קו ישר למכשיר הקרוב.
-              </p>
-            )}
-            {routeStatus === "none" && devicesInRange.length === 0 && (
-              <p className="text-ink/60">אין מכשירים בטווח הנתון.</p>
-            )}
-          </div>
-        </>
+          )}
+          {routeStatus === "loading" && (
+            <p className="text-ink/60">טוען מסלול רכיבה...</p>
+          )}
+          {routeStatus === "fallback" && (
+            <p className="text-beacon">
+              לא ניתן לטעון מסלול רכיבה כרגע, מוצג קו ישר למכשיר הקרוב.
+            </p>
+          )}
+          {routeStatus === "none" && devicesInRange.length === 0 && (
+            <p className="text-ink/60">אין מכשירים בטווח הנתון.</p>
+          )}
+        </div>
       )}
     </main>
   );

@@ -242,7 +242,15 @@ export default function IncidentMap({
     // pure lat/lng arithmetic with no map dependency, so it works
     // regardless of whether anything has been added to the map yet.
     const bounds = L.latLng(incident.lat, incident.lng).toBounds(radiusMeters);
-    map.fitBounds(bounds, { padding: [40, 40] });
+    // WHY 100px, not the smaller padding this started with: fitBounds zooms
+    // in exactly as far as it can while still fitting the circle plus this
+    // padding - a small padding value meant the view often ended up
+    // cropped tight to the circle's edge, with almost no surrounding
+    // streets/landmarks for context. A bigger padding leaves more of the
+    // map visible around the circle without changing what's guaranteed to
+    // be in view (the incident, the whole radius, and every in-range
+    // device, still all inside the same circle).
+    map.fitBounds(bounds, { padding: [100, 100] });
   }, [incident, radiusMeters]);
 
   return <div ref={containerRef} className="h-125 w-full rounded-lg" />;
