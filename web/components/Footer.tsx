@@ -65,6 +65,15 @@ export function Footer() {
             </a>
           </div>
         </div>
+
+        {/* WHY its own border-t + muted text-xs, not just another section
+            in the flex-col: this is a personal credit line, not a link a
+            visitor needs - keeping it visually subordinate (smaller,
+            fainter, separated by a divider) means it doesn't compete with
+            the MDA/purchase links above for attention. */}
+        <div className="border-t border-line pt-4 text-xs text-ink/50">
+          פותח על ידי Priel Krishtal | פרויקט גמר, קורס פיתוח WEB
+        </div>
       </div>
     </footer>
   );

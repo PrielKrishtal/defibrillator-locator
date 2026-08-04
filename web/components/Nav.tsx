@@ -12,7 +12,7 @@ export function Nav() {
       </Link>
       <div className="flex gap-3 text-sm text-ink/70 sm:gap-6">
         <Link href="/incident" className="transition-colors hover:text-signal">
-          מצוקה
+          סימולציית מצוקה
         </Link>
         <Link href="/register" className="transition-colors hover:text-signal">
           הרשמה
