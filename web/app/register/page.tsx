@@ -38,12 +38,12 @@ export default function RegisterPage() {
   );
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Takes the form submit event. Client-side-checks the eligibility rule
+  // for instant feedback, then POSTs the form fields to /api/registrations
+  // and shows the success screen or an error message based on the response.
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    // WHY check this before even calling the API: it mirrors the server's
-    // own eligibility rule, so the user sees the problem immediately
-    // instead of waiting for a round trip to find out.
     if (!hasDefibrillator && !hasLora) {
       setStatus("error");
       setErrorMessage("יש לסמן דפיברילטור, מכשיר LoRa, או שניהם");

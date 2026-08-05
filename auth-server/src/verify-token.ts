@@ -11,6 +11,9 @@ export interface AuthedRequest extends Request {
   admin?: AccessTokenPayload;
 }
 
+// Express middleware guarding admin-only routes. Reads the Authorization
+// header, verifies the bearer access token, and either attaches the
+// decoded admin payload to req.admin and calls next(), or responds 401.
 export function verifyToken(
   req: AuthedRequest,
   res: Response,

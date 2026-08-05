@@ -10,12 +10,18 @@ import { NextRequest, NextResponse } from "next/server";
 // so waiting a long time here buys nothing - fail fast and keep the fallback.
 const OSRM_TIMEOUT_MS = 7000;
 
+// Takes a raw query-string value and returns it as a finite number, or
+// null if it's missing or not a valid number.
 function parseCoord(value: string | null): number | null {
   if (value === null) return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
 
+// Takes fromLat/fromLng/toLat/toLng as query params, requests a cycling
+// route between them from OSRM, and returns the path as Leaflet-ready
+// [lat,lng] pairs plus distance and duration. Returns 502/504 if OSRM
+// fails or times out. Public.
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const fromLat = parseCoord(params.get("fromLat"));

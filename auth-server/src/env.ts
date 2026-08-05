@@ -3,7 +3,9 @@
 
 import "dotenv/config";
 
-// Throws immediately if missing, so a bad deploy never starts up half-working.
+// Reads one required environment variable by name and returns its value.
+// Throws if it's missing or empty, so a misconfigured deploy fails at
+// startup rather than mid-request.
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {

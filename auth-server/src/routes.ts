@@ -26,8 +26,10 @@ export const authRouter = Router();
 // refresh (read) and logout (clear) can't drift apart.
 const REFRESH_COOKIE_NAME = "refreshToken";
 
-// httpOnly keeps this out of reach of page JS. Secure+SameSite=None for the
-// cross-site prod setup; Lax+non-secure locally (same-site over http).
+// Returns the cookie flags used to set, read, and clear the refresh token,
+// so login/refresh/logout can't drift apart. httpOnly blocks page JS from
+// reading it; Secure+SameSite=None in production (cross-site), Lax and
+// non-secure locally (same-site over http).
 function refreshCookieOptions() {
   return {
     httpOnly: true,
@@ -48,6 +50,11 @@ const loginRateLimiter = rateLimit({
   message: { error: "Too many login attempts, try again later" },
 });
 
+// Takes {username, password} in the body. Checks the password with bcrypt
+// against the admins table; on success, issues an access token (returned
+// in the JSON body) and a refresh token (set as an httpOnly cookie), and
+// records the refresh token's jti as valid. Returns 400 for a missing
+// field, 401 for bad credentials, 500 for an infrastructure failure.
 authRouter.post("/login", loginRateLimiter, async (req: Request, res: Response) => {
   const { username, password } = req.body ?? {};
   if (!username || !password) {
@@ -108,6 +115,10 @@ authRouter.post("/login", loginRateLimiter, async (req: Request, res: Response) 
   }
 });
 
+// Reads the refresh token from the httpOnly cookie, verifies its signature
+// and that its jti hasn't been revoked, and returns a fresh access token
+// for the same admin. Returns 401 if the cookie is missing, invalid,
+// expired, or revoked.
 authRouter.post("/refresh", async (req: Request, res: Response) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
   if (!token) {
@@ -153,6 +164,9 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
   }
 });
 
+// Reads the refresh token from the httpOnly cookie if present, revokes it
+// by deleting its jti, and clears the cookie. Always responds 204,
+// regardless of whether a valid token was present.
 authRouter.post("/logout", async (req: Request, res: Response) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
   if (token) {

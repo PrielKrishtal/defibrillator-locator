@@ -20,6 +20,9 @@ const KNOWN_KEYS: Record<string, string> = {
   [WHY_VOLUNTEER_KEY]: DEFAULT_WHY_VOLUNTEER,
 };
 
+// Takes a content key from the route params and returns its current
+// admin-edited value, or the default if it hasn't been edited yet. 404s
+// for a key outside KNOWN_KEYS. Public.
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ key: string }> }
@@ -32,6 +35,9 @@ export async function GET(
   return NextResponse.json({ key, value });
 }
 
+// Admin-only. Takes a content key from the route params and {value} in the
+// body, and overwrites that key's stored value. 404s for a key outside
+// KNOWN_KEYS.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ key: string }> }

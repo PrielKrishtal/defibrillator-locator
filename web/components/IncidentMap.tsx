@@ -77,12 +77,16 @@ export default function IncidentMap({
   // calls the latest version. Updated in an effect, not during render:
   // mutating a ref while rendering is unsafe under React's rules.
   const onMapClickRef = useRef(onMapClick);
+  // Runs after every render. Keeps onMapClickRef pointed at the latest
+  // onMapClick prop, so the mount-once click handler below never calls a
+  // stale closure.
   useEffect(() => {
     onMapClickRef.current = onMapClick;
   });
 
-  // Mount: create the map once. The empty dep array is deliberate - we never
-  // want to tear down and rebuild the whole map on a prop change.
+  // Runs once on mount (empty dep array - never re-runs on a prop change).
+  // Creates the Leaflet map, adds the OSM tile layer and a click handler,
+  // and sets up the overlay layer group; tears the map down on unmount.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -110,7 +114,10 @@ export default function IncidentMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Redraw overlays whenever the incident, radius, devices, or route change.
+  // Runs whenever incident, radiusMeters, devicesInRange, allDevices, or
+  // routePath changes. Clears and redraws every overlay - the radius
+  // circle, muted and in-range device markers, the incident marker, and
+  // the route line - to match the current props.
   useEffect(() => {
     const overlay = overlayRef.current;
     if (!overlay) return;
@@ -203,10 +210,11 @@ export default function IncidentMap({
     }
   }, [incident, radiusMeters, devicesInRange, allDevices, routePath]);
 
-  // Auto-fits the view to the radius circle so a click/simulate near the
-  // scatter's edge doesn't land outside the visible map. Every in-range
-  // device is guaranteed inside this circle by definition; an OSRM route
-  // can occasionally jut slightly outside it on a winding road - accepted.
+  // Runs whenever incident or radiusMeters changes. Pans/zooms the map to
+  // fit the radius circle, so a click/simulate near the scatter's edge
+  // doesn't land outside the visible map. Every in-range device is
+  // guaranteed inside this circle by definition; an OSRM route can
+  // occasionally jut slightly outside it on a winding road - accepted.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !incident) return;

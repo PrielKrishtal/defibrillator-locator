@@ -38,8 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Returns the token directly, not just via state, so authFetch's
-  // retry-once logic can use it immediately without waiting for a re-render.
+  // Takes no arguments. Calls auth-server's /refresh using the httpOnly
+  // cookie, updates accessToken state, and returns the new token directly
+  // (not just via state) so authFetch's retry logic can use it immediately
+  // - or returns null on failure.
   async function refreshSilently(): Promise<string | null> {
     try {
       const res = await fetch(`${AUTH_SERVER_URL}/refresh`, {
@@ -60,17 +62,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // Takes no arguments. Runs once on mount: attempts a silent refresh to
+    // restore a session from an existing valid refresh cookie without
+    // asking for a password again, then marks loading finished either way.
     // Named inner function so setState only runs after the awaited work
     // resolves, not as the effect's own first synchronous action.
     async function attemptSilentRefresh() {
-      // Runs once on mount: restores a session from an existing valid
-      // refresh cookie without asking for a password again.
       await refreshSilently();
       setIsLoading(false);
     }
     attemptSilentRefresh();
   }, []);
 
+  // Takes a username and password, calls auth-server's /login, and on
+  // success stores the returned access token. Returns {ok: true} or
+  // {ok: false, error}.
   async function login(username: string, password: string): Promise<LoginResult> {
     try {
       const res = await fetch(`${AUTH_SERVER_URL}/login`, {
@@ -91,6 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Takes no arguments. Calls auth-server's /logout to revoke the refresh
+  // token, then clears the local access token in a finally block, so the
+  // UI treats the admin as logged out even if the network call fails.
   async function logout(): Promise<void> {
     try {
       await fetch(`${AUTH_SERVER_URL}/logout`, {
@@ -98,12 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: "include",
       });
     } finally {
-      // WHY finally: even if the network call fails, the admin clicked
-      // logout - clear the local token so the UI treats them as logged out.
       setAccessToken(null);
     }
   }
 
+  // Takes the same (input, init) pair as fetch. Attaches the current
+  // access token as a Bearer header, and if the first attempt returns 401,
+  // silently refreshes and retries exactly once with the new token.
   async function authFetch(
     input: string,
     init: RequestInit = {}
@@ -136,6 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Takes no arguments and returns the current AuthContext value (token,
+// loading state, login/logout/authFetch). Throws if called outside an
+// AuthProvider.
 export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (!context) {

@@ -32,6 +32,9 @@ const COASTLINE_REFERENCE_SOUTH = { lat: 32.02, lng: 34.746 };
 const COASTLINE_REFERENCE_NORTH = { lat: 32.248, lng: 34.825 };
 const COASTLINE_SAFETY_MARGIN_DEG = 0.015;
 
+// Takes a latitude and returns the minimum longitude considered "on land"
+// at that latitude, interpolated between two real coastline reference
+// points plus a safety margin. Same logic as db/seed-devices.ts.
 function minLandLngAt(lat: number): number {
   const slope =
     (COASTLINE_REFERENCE_NORTH.lng - COASTLINE_REFERENCE_SOUTH.lng) /
@@ -41,8 +44,10 @@ function minLandLngAt(lat: number): number {
   return interpolatedCoastLng + COASTLINE_SAFETY_MARGIN_DEG;
 }
 
-// Same sqrt(random)-radius and retry-on-sea-landing logic as
-// db/seed-devices.ts, and for the same reasons - see that file.
+// Takes no arguments and returns one random {lat, lng} inside the same
+// 15km on-land disk the devices were seeded in, for the quick-simulate
+// button. Same sqrt(random)-radius and retry-on-sea-landing logic as
+// db/seed-devices.ts - see that file.
 function randomPointNearDeviceCluster(): { lat: number; lng: number } {
   const maxRadiusMeters = 15000;
   const earthRadiusMeters = 6371000;
@@ -76,6 +81,9 @@ type GoldenWindowLevel = "green" | "amber" | "red";
 const GOLDEN_WINDOW_GREEN_MAX_SECONDS = 4 * 60;
 const GOLDEN_WINDOW_AMBER_MAX_SECONDS = 10 * 60;
 
+// Takes a duration in seconds and returns "green" under 4 minutes, "amber"
+// from 4 to 10 minutes, or "red" past 10 - the assignment's own
+// cardiac-arrest survival-dropoff figures.
 function goldenWindowLevel(totalSeconds: number): GoldenWindowLevel {
   if (totalSeconds < GOLDEN_WINDOW_GREEN_MAX_SECONDS) return "green";
   if (totalSeconds < GOLDEN_WINDOW_AMBER_MAX_SECONDS) return "amber";
@@ -91,6 +99,7 @@ const GOLDEN_WINDOW_TEXT_CLASS: Record<GoldenWindowLevel, string> = {
   red: "text-flare",
 };
 
+// Takes a duration in seconds and returns it formatted as "m:ss".
 function formatMinutesSeconds(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -126,8 +135,10 @@ export default function IncidentPage() {
   const elapsedSeconds =
     incidentSetAt !== null ? Math.floor((now - incidentSetAt) / 1000) : 0;
 
-  // Reset here, in the event handler, not an effect: Date.now() is impure
-  // (disallowed in render/effects) but fine in a plain event handler.
+  // Takes a lat/lng, sets it as the active incident, and resets the
+  // golden-window clock to start counting from now. Done in this event
+  // handler, not an effect: Date.now() is impure (disallowed in render/
+  // effects) but fine in a plain event handler.
   function setIncidentAndResetClock(lat: number, lng: number) {
     setIncident({ lat, lng });
     const timestamp = Date.now();
@@ -135,14 +146,19 @@ export default function IncidentPage() {
     setNow(timestamp);
   }
 
-  // The full device population only needs loading once - it isn't affected
-  // by where the incident is, unlike the in-range subset below.
+  // Runs once on mount. Loads the full unfiltered device list for the
+  // map's muted background markers - it isn't affected by where the
+  // incident is, unlike the in-range subset below.
   useEffect(() => {
     fetch("/api/devices")
       .then((r) => r.json())
       .then((data) => setAllDevices(data.devices ?? []));
   }, []);
 
+  // Runs whenever incident changes. Posts the incident point to the
+  // geo-fence API, stores the radius and in-range devices it returns, then
+  // requests a cycling route to the nearest device - drawing a straight
+  // line immediately and upgrading it to the real OSRM route if it loads.
   useEffect(() => {
     // No incident set yet (page just loaded, nothing clicked/simulated) -
     // nothing to geo-fence against.
@@ -156,6 +172,9 @@ export default function IncidentPage() {
     // doesn't carry into this nested function's later statements.
     const activeIncident = incident;
 
+    // Takes no arguments (reads activeIncident from the closure). Fetches
+    // the in-range devices for the current incident, then the cycling
+    // route to the nearest one, updating routeStatus at each stage.
     async function loadIncident() {
       const res = await fetch("/api/incident", {
         method: "POST",
@@ -219,10 +238,9 @@ export default function IncidentPage() {
     };
   }, [incident]);
 
-  // Quick entry point for the demo: picks a random point in the same area
-  // the devices were seeded around and sets it as the incident, exactly as
-  // if the user had clicked that spot on the map - manual clicking still
-  // works too, this is just an additional way in.
+  // Takes no arguments. Picks a random on-land point near the seeded
+  // devices and sets it as the incident, exactly as a manual map click
+  // would - an additional entry point, not a replacement for clicking.
   function handleQuickSimulate() {
     const { lat, lng } = randomPointNearDeviceCluster();
     setIncidentAndResetClock(lat, lng);

@@ -6,6 +6,8 @@ import { NextResponse } from "next/server";
 import { connectToMongo } from "@/lib/mongodb";
 import { Device } from "@/lib/models/device";
 
+// Takes no arguments and returns every simulated device's id, position,
+// LoRa flag, and battery level. Public reference data.
 export async function GET() {
   try {
     await connectToMongo();

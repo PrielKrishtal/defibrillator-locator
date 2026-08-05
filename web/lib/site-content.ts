@@ -4,6 +4,8 @@
 import { connectToMongo } from "./mongodb";
 import { SiteSetting } from "./models/site-setting";
 
+// Takes a settings key and a fallback, and returns the admin-saved value
+// for that key, or the fallback if it hasn't been set yet.
 export async function getSiteContent(
   key: string,
   fallback: string
@@ -13,6 +15,7 @@ export async function getSiteContent(
   return doc?.value ?? fallback;
 }
 
+// Takes a settings key and a new value, and upserts it into site_setting.
 export async function setSiteContent(key: string, value: string): Promise<void> {
   await connectToMongo();
   // WHY upsert: the first admin edit is what creates the document - there's
@@ -42,18 +45,21 @@ export const DEFAULT_WHY_VOLUNTEER =
 export const RADIUS_METERS_KEY = "simulator_radius_meters";
 export const DEFAULT_RADIUS_METERS = 5000;
 
+// Takes no arguments and returns the current simulator radius in meters,
+// falling back to the default if none is saved or the saved value is
+// invalid (guards against a corrupted/non-numeric value ever having been
+// stored, so the incident simulator always gets a usable number).
 export async function getRadiusMeters(): Promise<number> {
   const raw = await getSiteContent(
     RADIUS_METERS_KEY,
     String(DEFAULT_RADIUS_METERS)
   );
   const parsed = Number(raw);
-  // WHY the fallback here too: guards against a corrupted/non-numeric value
-  // ever having been saved, so the incident simulator (Phase 7) always gets
-  // a usable number instead of NaN.
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_RADIUS_METERS;
 }
 
+// Takes a radius in meters and saves it as the simulator's configured
+// alert radius.
 export async function setRadiusMeters(meters: number): Promise<void> {
   await setSiteContent(RADIUS_METERS_KEY, String(meters));
 }

@@ -5,10 +5,13 @@
 
 const EARTH_RADIUS_METERS = 6371000;
 
+// Takes an angle in degrees and returns it in radians.
 function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
 }
 
+// Takes two lat/lng points and returns the great-circle distance between
+// them in meters.
 export function haversineMeters(
   lat1: number,
   lng1: number,

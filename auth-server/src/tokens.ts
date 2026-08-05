@@ -22,21 +22,25 @@ export type AccessTokenPayload = { adminId: number; username: string };
 // The jti is what the refresh_tokens table tracks for revocation.
 export type RefreshTokenPayload = { adminId: number; jti: string };
 
+// Takes an admin's id and username and returns a signed access token,
+// valid for 15 minutes.
 export function signAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(payload, config.jwtAccessSecret, {
     expiresIn: ACCESS_TOKEN_TTL,
   });
 }
 
+// Takes an admin's id and a unique token id (jti) and returns a signed
+// refresh token, valid for 7 days.
 export function signRefreshToken(payload: RefreshTokenPayload): string {
   return jwt.sign(payload, config.jwtRefreshSecret, {
     expiresIn: REFRESH_TOKEN_TTL,
   });
 }
 
-// jwt.verify returns string | JwtPayload; we only ever sign objects, so the
-// string case is ruled out before returning our shape. Throws on a bad
-// signature or expiry - callers catch and answer 401.
+// Takes a raw access token string, verifies its signature and expiry, and
+// returns the decoded {adminId, username} payload. Throws on a bad
+// signature or an expired token.
 export function verifyAccessToken(token: string): AccessTokenPayload {
   const decoded = jwt.verify(token, config.jwtAccessSecret);
   if (typeof decoded === "string") {
@@ -45,6 +49,9 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   return decoded as AccessTokenPayload;
 }
 
+// Takes a raw refresh token string, verifies its signature and expiry, and
+// returns the decoded {adminId, jti} payload. Throws on a bad signature or
+// an expired token.
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
   const decoded = jwt.verify(token, config.jwtRefreshSecret);
   if (typeof decoded === "string") {

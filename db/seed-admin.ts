@@ -18,6 +18,9 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Takes no arguments. Hashes the seed password with bcrypt and upserts one
+// row into the admins table for the seed username, so re-running this
+// script resets the account instead of erroring on the UNIQUE constraint.
 async function seedAdmin() {
   // WHY: hash here, once, at seed time - password_hash never stores the
   // plaintext, and bcrypt bakes its own random salt into the output hash.

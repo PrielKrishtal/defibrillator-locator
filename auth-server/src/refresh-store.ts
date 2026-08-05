@@ -4,7 +4,8 @@
 
 import { supabase } from "./supabase";
 
-// Record a newly issued refresh token so it counts as valid.
+// Takes an admin id, a refresh token's jti, and its expiry date, and
+// inserts one row recording that this token is currently valid.
 export async function storeJti(
   adminId: number,
   jti: string,
@@ -18,7 +19,8 @@ export async function storeJti(
   }
 }
 
-// True if this jti has not been revoked (i.e. the row still exists).
+// Takes a refresh token's jti and returns true if it's still present in
+// refresh_tokens - false if it was revoked or never existed.
 export async function isJtiValid(jti: string): Promise<boolean> {
   // WHY maybeSingle: we expect zero or one row. It returns null (not an
   // error) when the jti is absent, which is exactly the revoked case.
@@ -33,7 +35,8 @@ export async function isJtiValid(jti: string): Promise<boolean> {
   return data !== null;
 }
 
-// Revoke one refresh token (logout).
+// Takes a refresh token's jti and deletes its row, revoking that token
+// immediately even though its signature and expiry are still valid.
 export async function deleteJti(jti: string): Promise<void> {
   const { error } = await supabase
     .from("refresh_tokens")
@@ -44,8 +47,8 @@ export async function deleteJti(jti: string): Promise<void> {
   }
 }
 
-// Housekeeping: drop this admin's already-expired rows so the table doesn't
-// grow without bound. Called on login, a natural moment to tidy up.
+// Takes an admin id and deletes all of that admin's already-expired
+// refresh-token rows, so the table doesn't grow without bound.
 export async function deleteExpiredForAdmin(adminId: number): Promise<void> {
   const { error } = await supabase
     .from("refresh_tokens")

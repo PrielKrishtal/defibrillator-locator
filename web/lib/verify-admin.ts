@@ -13,9 +13,9 @@ if (!jwtAccessSecret) {
 
 export type AdminPayload = { adminId: number; username: string };
 
-// Returns the decoded admin payload if the request carries a valid,
-// unexpired access token, or null otherwise. Never throws - callers just
-// check for null and respond 401.
+// Takes a Next.js request and returns the decoded admin payload if its
+// Authorization header carries a valid, unexpired access token, or null
+// otherwise. Never throws - callers just check for null and respond 401.
 export function getAdminFromRequest(req: NextRequest): AdminPayload | null {
   const header = req.headers.get("authorization");
   if (!header || !header.startsWith("Bearer ")) {

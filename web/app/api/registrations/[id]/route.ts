@@ -6,10 +6,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { getAdminFromRequest } from "@/lib/verify-admin";
 
+// Admin-only. Takes a registration id from the route params and deletes
+// that row.
 export async function DELETE(
   req: NextRequest,
-  // WHY params is a Promise: Next.js 16 made all dynamic route params async
-  // - see DEFIBRILLATOR_PROJECT_BRIEF.md §11 (2026-07-10, Next.js 16 entry).
+  // params is a Promise: Next.js 16 made all dynamic route params async.
   { params }: { params: Promise<{ id: string }> }
 ) {
   if (!getAdminFromRequest(req)) {

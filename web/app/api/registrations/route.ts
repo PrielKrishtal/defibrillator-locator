@@ -12,6 +12,10 @@ import { isRateLimited } from "@/lib/rate-limit";
 const REGISTER_MAX_REQUESTS = 5;
 const REGISTER_WINDOW_MS = 60 * 1000;
 
+// Takes a registration submission in the body. Rate-limits by IP,
+// sanitizes and validates the fields, then inserts a row into the
+// registrations table. Returns 201 on success, 400 for invalid input, 429
+// if rate-limited, 500 on a database failure. Public, no auth required.
 export async function POST(req: NextRequest) {
   // x-forwarded-for: the proxy in front records the real client IP here,
   // first entry if there are several hops. "unknown" is the local-dev fallback.
@@ -55,6 +59,8 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true }, { status: 201 });
 }
 
+// Admin-only. Takes no arguments and returns every registration row,
+// newest first.
 export async function GET(req: NextRequest) {
   if (!getAdminFromRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

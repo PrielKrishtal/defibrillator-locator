@@ -18,8 +18,8 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // WHY: if the silent-refresh on mount already restored a session (admin
-  // still has a valid refresh cookie from before), skip straight to the
+  // Runs whenever isLoading or accessToken changes. If the silent-refresh
+  // on mount already restored a session, redirects straight to the
   // dashboard instead of showing the login form again.
   useEffect(() => {
     if (!isLoading && accessToken) {
@@ -27,6 +27,9 @@ export default function AdminLoginPage() {
     }
   }, [isLoading, accessToken, router]);
 
+  // Takes the form submit event. Calls the auth context's login with the
+  // entered username/password, then redirects to /admin on success or
+  // shows the returned error message.
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitting(true);

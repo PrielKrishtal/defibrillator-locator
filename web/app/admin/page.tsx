@@ -59,18 +59,19 @@ export default function AdminDashboardPage() {
   const [whyVolunteerText, setWhyVolunteerText] = useState("");
   const [whyVolunteerStatus, setWhyVolunteerStatus] = useState<SaveStatus>("idle");
 
-  // WHY redirect here, not in app/admin/layout.tsx: the layout also wraps
-  // /admin/login, and guarding there would redirect the login page to
-  // itself in a loop. Guarding only the dashboard page avoids that.
+  // Runs whenever isLoading or accessToken changes. Redirects to the login
+  // page once the silent-refresh attempt has finished and no session was
+  // restored. Kept here, not in the layout, so it doesn't also guard (and
+  // loop) /admin/login.
   useEffect(() => {
     if (!isLoading && !accessToken) {
       router.replace("/admin/login");
     }
   }, [isLoading, accessToken, router]);
 
-  // authFetch is a real dependency, not suppressed: it's a fresh closure
-  // per render holding the current token - an empty array would freeze it
-  // to the pre-login version and silently 401 forever.
+  // Takes no arguments. Fetches every registration row and stores it in
+  // state. authFetch is a real dependency, not suppressed: it's a fresh
+  // closure per render holding the current token.
   const loadRegistrations = useCallback(async () => {
     const res = await authFetch("/api/registrations");
     if (res.ok) {
@@ -79,6 +80,9 @@ export default function AdminDashboardPage() {
     }
   }, [authFetch]);
 
+  // Runs whenever accessToken or loadRegistrations changes. Loads every
+  // piece of dashboard data in one pass once logged in: registrations,
+  // simulator radius, both marketing-copy fields, and the device list.
   useEffect(() => {
     if (!accessToken) return;
 
@@ -105,6 +109,8 @@ export default function AdminDashboardPage() {
     loadDashboardData();
   }, [accessToken, loadRegistrations]);
 
+  // Takes a registration id, deletes that row via the admin DELETE
+  // endpoint, and reloads the registrations list on success.
   async function handleDelete(id: number) {
     const res = await authFetch(`/api/registrations/${id}`, {
       method: "DELETE",
@@ -114,6 +120,8 @@ export default function AdminDashboardPage() {
     }
   }
 
+  // Takes the form submit event and saves the entered radius value as the
+  // new simulator radius via the admin PATCH endpoint.
   async function handleRadiusSave(e: FormEvent) {
     e.preventDefault();
     setRadiusStatus("saving");
@@ -125,6 +133,8 @@ export default function AdminDashboardPage() {
     setRadiusStatus(res.ok ? "done" : "error");
   }
 
+  // Takes the form submit event and saves the edited homepage intro text
+  // via the admin PATCH endpoint.
   async function handleIntroSave(e: FormEvent) {
     e.preventDefault();
     setIntroStatus("saving");
@@ -136,6 +146,8 @@ export default function AdminDashboardPage() {
     setIntroStatus(res.ok ? "done" : "error");
   }
 
+  // Takes the form submit event and saves the edited "why volunteer" copy
+  // via the admin PATCH endpoint.
   async function handleWhyVolunteerSave(e: FormEvent) {
     e.preventDefault();
     setWhyVolunteerStatus("saving");
@@ -147,6 +159,8 @@ export default function AdminDashboardPage() {
     setWhyVolunteerStatus(res.ok ? "done" : "error");
   }
 
+  // Takes no arguments. Revokes the refresh token via the auth context's
+  // logout, then redirects to the login page.
   async function handleLogout() {
     await logout();
     router.push("/admin/login");

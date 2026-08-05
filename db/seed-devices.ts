@@ -18,8 +18,10 @@ const CENTER_LNG = 34.7818;
 const MAX_RADIUS_METERS = 15000;
 const EARTH_RADIUS_METERS = 6371000;
 
-// sqrt(random) for the radius: a plain random radius bunches points near
-// the center (less area in an inner ring) - this spreads them evenly.
+// Takes a center point and a max radius in meters, and returns one random
+// {lat, lng} uniformly distributed inside that circle. sqrt(random) for the
+// radius: a plain random radius bunches points near the center (less area
+// in an inner ring) - this spreads them evenly.
 function randomPointNear(centerLat: number, centerLng: number, maxRadiusMeters: number) {
   const radius = maxRadiusMeters * Math.sqrt(Math.random());
   const angle = Math.random() * 2 * Math.PI;
@@ -45,6 +47,9 @@ const COASTLINE_REFERENCE_SOUTH = { lat: 32.02, lng: 34.746 }; // Bat Yam
 const COASTLINE_REFERENCE_NORTH = { lat: 32.248, lng: 34.825 }; // Ga'ash Beach
 const COASTLINE_SAFETY_MARGIN_DEG = 0.015; // roughly 1.5km
 
+// Takes a latitude and returns the minimum longitude considered "on land"
+// at that latitude, interpolated between two real coastline reference
+// points plus a safety margin.
 function minLandLngAt(lat: number): number {
   const slope =
     (COASTLINE_REFERENCE_NORTH.lng - COASTLINE_REFERENCE_SOUTH.lng) /
@@ -54,8 +59,11 @@ function minLandLngAt(lat: number): number {
   return interpolatedCoastLng + COASTLINE_SAFETY_MARGIN_DEG;
 }
 
-// Retries rather than clamping a too-far-west point: clamping would pile
-// rejects along one edge instead of keeping an even spread.
+// Takes a center point and a max radius in meters, and returns one random
+// {lat, lng} inside that circle that also lands on land, by retrying
+// randomPointNear up to 50 times. Retries rather than clamping a too-far-
+// west point: clamping would pile rejects along one edge instead of
+// keeping an even spread.
 function randomLandPointNear(
   centerLat: number,
   centerLng: number,
@@ -72,17 +80,22 @@ function randomLandPointNear(
   return { lat: centerLat, lng: centerLng };
 }
 
+// Takes no arguments and returns a short, DevEUI-looking device id like
+// "SIM-A1B2C3D4", from 4 random bytes as hex.
 function randomDeviceId() {
-  // WHY: 4 random bytes as hex gives a short, DevEUI-looking ID
-  // ("SIM-A1B2C3D4") without needing a real LoRa allocation.
   return `SIM-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
+// Takes a maximum age in hours and returns a random Date within that many
+// hours before now, simulating a device's last-transmission time.
 function randomRecentDate(maxHoursAgo: number) {
   const msAgo = Math.random() * maxHoursAgo * 60 * 60 * 1000;
   return new Date(Date.now() - msAgo);
 }
 
+// Takes no arguments and returns an array of DEVICE_COUNT simulated device
+// records - each with a random on-land position, id, battery level,
+// LoRa flag, and recent last-seen timestamp - ready to insert into Mongo.
 function buildSimulatedDevices() {
   const devices = [];
   for (let i = 0; i < DEVICE_COUNT; i++) {
@@ -105,6 +118,9 @@ function buildSimulatedDevices() {
   return devices;
 }
 
+// Takes no arguments. Connects to MongoDB, replaces every existing
+// document in the devices collection with a fresh batch of DEVICE_COUNT
+// simulated devices, then disconnects.
 async function seedDevices() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
@@ -113,9 +129,8 @@ async function seedDevices() {
 
   await mongoose.connect(uri);
 
-  // WHY: clear existing simulated devices first so re-running this script
-  // (e.g. after changing DEVICE_COUNT) replaces the set instead of piling
-  // up duplicates alongside the old ones.
+  // Clears existing simulated devices first so re-running this script (e.g.
+  // after changing DEVICE_COUNT) replaces the set instead of piling up.
   await Device.deleteMany({});
   await Device.insertMany(buildSimulatedDevices());
 

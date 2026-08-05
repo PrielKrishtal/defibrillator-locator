@@ -6,11 +6,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminFromRequest } from "@/lib/verify-admin";
 import { getRadiusMeters, setRadiusMeters } from "@/lib/site-content";
 
+// Takes no arguments and returns the current simulator radius in meters.
+// Public.
 export async function GET() {
   const radiusMeters = await getRadiusMeters();
   return NextResponse.json({ radiusMeters });
 }
 
+// Admin-only. Takes {radiusMeters} in the body, validates it's a positive
+// number, and saves it as the new simulator radius.
 export async function PATCH(req: NextRequest) {
   if (!getAdminFromRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

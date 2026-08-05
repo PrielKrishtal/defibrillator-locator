@@ -6,9 +6,9 @@ type RateLimitEntry = { count: number; resetAt: number };
 
 const requestLog = new Map<string, RateLimitEntry>();
 
-// Returns true if `key` (e.g. an IP address) has made more than
-// `maxRequests` requests within the last `windowMs` milliseconds. Each call
-// counts as one request, whether or not it turns out to be over the limit.
+// Takes a key (e.g. an IP address), a max request count, and a window in
+// milliseconds. Records this call against that key and returns true if the
+// key has now exceeded maxRequests within the current window.
 export function isRateLimited(
   key: string,
   maxRequests: number,

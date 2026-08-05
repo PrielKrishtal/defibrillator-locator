@@ -26,6 +26,8 @@ const cache: MongooseCache = globalForMongoose.mongooseCache ?? {
 };
 globalForMongoose.mongooseCache = cache;
 
+// Takes no arguments and returns a shared Mongoose connection, creating one
+// on first call and reusing it (via a global cache) on every call after.
 export async function connectToMongo() {
   if (cache.conn) {
     return cache.conn;

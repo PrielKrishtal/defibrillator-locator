@@ -32,14 +32,18 @@ export type ValidationResult =
   | { valid: true; data: SanitizedRegistration }
   | { valid: false; error: string };
 
-// WHY trim then cap, not the other way around: trimming first means
-// leading/trailing spaces don't eat into the length budget, so a name that
-// just barely fits isn't unfairly truncated because of whitespace.
+// Takes a raw value and a max length, and returns it trimmed then
+// length-capped as a string - or an empty string if it wasn't a string.
+// Trims before capping so whitespace doesn't eat into the length budget.
 function sanitizeString(value: unknown, maxLength: number): string {
   if (typeof value !== "string") return "";
   return value.trim().slice(0, maxLength);
 }
 
+// Takes a raw registration submission, sanitizes every field, and
+// validates it against the required-field and eligibility rules (§2:
+// defibrillator and/or LoRa owner). Returns either the sanitized data or
+// an error message.
 export function parseRegistration(input: RegistrationInput): ValidationResult {
   const firstName = sanitizeString(input.firstName, MAX_NAME_LENGTH);
   const lastName = sanitizeString(input.lastName, MAX_NAME_LENGTH);

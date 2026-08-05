@@ -8,6 +8,10 @@ import { Device } from "@/lib/models/device";
 import { haversineMeters } from "@/lib/geo";
 import { getRadiusMeters } from "@/lib/site-content";
 
+// Takes {lat, lng} in the body. Computes the Haversine distance from that
+// point to every seeded device, filters to the admin-configured radius,
+// and returns the matches sorted nearest-first, along with the radius
+// used. Public, no auth required.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const lat = Number(body?.lat);
