@@ -12,6 +12,9 @@ export type ValidationResult =
   | { valid: true; data: LoraPurchaseLink[] }
   | { valid: false; error: string };
 
+// Takes one array entry from the parsed JSON and returns whether it has the
+// shape of a link object (a `label` and a `url` property, types unchecked) -
+// narrows `unknown` enough for the caller to then check both are strings.
 function isRawLink(entry: unknown): entry is { label: unknown; url: unknown } {
   return typeof entry === "object" && entry !== null && "label" in entry && "url" in entry;
 }

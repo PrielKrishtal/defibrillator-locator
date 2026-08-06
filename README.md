@@ -72,7 +72,8 @@ Two servers, two databases, split by responsibility:
     logout
 - **MongoDB Atlas** holds flexible/document data:
   - `devices` — the ~50 simulated LoRa/defibrillator devices
-  - `site_settings` — admin-editable homepage copy and the simulator radius
+  - `site_settings` — admin-editable homepage copy, LoRa purchase links, and
+    the simulator radius
 
 **The JWT flow:**
 
@@ -109,10 +110,12 @@ Two servers, two databases, split by responsibility:
 - **Registration (`/register`)** - first name (required), last name, mobile
   (required), and LoRa ID. No password: public registrants don't authenticate.
 - **Admin dashboard (`/admin`)** - manage registrations, adjust the simulator
-  radius, edit homepage marketing copy, and review the simulated device fleet
-  (battery levels included). Protected by the JWT flow above.
-- **External links** - the defibrillator map used by MDA's dispatch center, and
-  three real 433 MHz LoRa purchase sites.
+  radius, edit homepage marketing copy (including the LoRa purchase links),
+  and review the simulated device fleet (battery levels included). Protected
+  by the JWT flow above.
+- **External links** - the defibrillator map used by MDA's dispatch center
+  (fixed), and three real 433 MHz LoRa purchase sites (admin-editable label +
+  URL, validated to http/https only).
 
 ## Local development
 
