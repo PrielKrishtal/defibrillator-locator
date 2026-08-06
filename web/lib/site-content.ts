@@ -42,6 +42,28 @@ export const DEFAULT_WHY_VOLUNTEER =
   "ההרשמה חינמית, אינה דורשת סיסמה, ואינה מחייבת אתכם בכלום מלבד הסכמה " +
   "שהמערכת תדע לאתר אתכם בעת הצורך.";
 
+export type LoraPurchaseLink = { label: string; url: string };
+
+export const LORA_LINKS_KEY = "lora_purchase_links";
+const DEFAULT_LORA_PURCHASE_LINKS: LoraPurchaseLink[] = [
+  {
+    label: "Adafruit LoRa FeatherWing - RFM95W 433MHz",
+    url: "https://www.adafruit.com/product/3232",
+  },
+  {
+    label: "SparkFun - LoRa Transceiver Module RFM95CW",
+    url: "https://www.sparkfun.com/lora-transceiver-module-rfm95cw.html",
+  },
+  {
+    label: "Seeed Studio - Grove LoRa Radio 433MHz",
+    url: "https://www.seeedstudio.com/Grove-LoRa-Radio-433MHz-p-2777.html",
+  },
+];
+// Stored as a JSON string, like every other site_content value - the schema
+// stays a single string column, and this is the one key whose string
+// happens to be JSON instead of plain text.
+export const DEFAULT_LORA_LINKS = JSON.stringify(DEFAULT_LORA_PURCHASE_LINKS);
+
 export const RADIUS_METERS_KEY = "simulator_radius_meters";
 export const DEFAULT_RADIUS_METERS = 5000;
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/Button";
+import type { LoraPurchaseLink } from "@/lib/site-content";
 
 type Registration = {
   id: number;
@@ -26,6 +27,14 @@ type Device = {
 };
 
 type SaveStatus = "idle" | "saving" | "done" | "error";
+
+// Placeholder shape while the real 3 links are still loading - never
+// rendered as saved data, just keeps the form's 3 rows stable pre-fetch.
+const EMPTY_LORA_LINKS: LoraPurchaseLink[] = [
+  { label: "", url: "" },
+  { label: "", url: "" },
+  { label: "", url: "" },
+];
 
 const INPUT_CLASSES =
   "rounded-lg border border-line bg-paper px-3 py-2 text-ink transition-colors focus:border-signal focus:outline-none focus:ring-2 focus:ring-signal/20";
@@ -58,6 +67,9 @@ export default function AdminDashboardPage() {
   const [introStatus, setIntroStatus] = useState<SaveStatus>("idle");
   const [whyVolunteerText, setWhyVolunteerText] = useState("");
   const [whyVolunteerStatus, setWhyVolunteerStatus] = useState<SaveStatus>("idle");
+  const [loraLinks, setLoraLinks] = useState<LoraPurchaseLink[]>(EMPTY_LORA_LINKS);
+  const [loraLinksStatus, setLoraLinksStatus] = useState<SaveStatus>("idle");
+  const [loraLinksError, setLoraLinksError] = useState("");
 
   // Runs whenever isLoading or accessToken changes. Redirects to the login
   // page once the silent-refresh attempt has finished and no session was
@@ -99,6 +111,13 @@ export default function AdminDashboardPage() {
       const whyVolunteerRes = await fetch("/api/site-content/why_volunteer_copy");
       const whyVolunteerBody = await whyVolunteerRes.json();
       setWhyVolunteerText(whyVolunteerBody.value);
+      const loraLinksRes = await fetch("/api/site-content/lora_purchase_links");
+      const loraLinksBody = await loraLinksRes.json();
+      try {
+        setLoraLinks(JSON.parse(loraLinksBody.value));
+      } catch {
+        setLoraLinks(EMPTY_LORA_LINKS);
+      }
       // WHY plain fetch, not authFetch: GET /api/devices is public (the
       // incident map already reads it with no login), so this is just
       // reusing existing data, not a new admin-only endpoint.
@@ -157,6 +176,36 @@ export default function AdminDashboardPage() {
       body: JSON.stringify({ value: whyVolunteerText }),
     });
     setWhyVolunteerStatus(res.ok ? "done" : "error");
+  }
+
+  // Takes the form submit event and saves the edited LoRa purchase links
+  // via the admin PATCH endpoint. Shows the server's specific validation
+  // error on failure instead of a generic message, since the endpoint
+  // rejects bad input rather than silently fixing it.
+  async function handleLoraLinksSave(e: FormEvent) {
+    e.preventDefault();
+    setLoraLinksStatus("saving");
+    setLoraLinksError("");
+    const res = await authFetch("/api/site-content/lora_purchase_links", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ value: JSON.stringify(loraLinks) }),
+    });
+    if (res.ok) {
+      setLoraLinksStatus("done");
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setLoraLinksError(body.error || "שגיאה בשמירה");
+      setLoraLinksStatus("error");
+    }
+  }
+
+  // Takes an index into loraLinks and a partial update, and applies it to
+  // just that one link's label/url without touching the other two.
+  function updateLoraLink(index: number, patch: Partial<LoraPurchaseLink>) {
+    setLoraLinks((prev) =>
+      prev.map((link, i) => (i === index ? { ...link, ...patch } : link))
+    );
   }
 
   // Takes no arguments. Revokes the refresh token via the auth context's
@@ -322,6 +371,41 @@ export default function AdminDashboardPage() {
             className={INPUT_CLASSES}
           />
           <SaveButton status={whyVolunteerStatus} />
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-xl border border-line bg-paper p-6 shadow-sm">
+        <h2 className="font-display text-lg font-medium">
+          קישורי רכישת מכשירי LoRa
+        </h2>
+        <form onSubmit={handleLoraLinksSave} className="flex flex-col gap-4">
+          {loraLinks.map((link, i) => (
+            <div
+              key={i}
+              className="flex flex-col gap-2 rounded-lg border border-line/60 p-3"
+            >
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-ink/70">כותרת</span>
+                <input
+                  value={link.label}
+                  onChange={(e) => updateLoraLink(i, { label: e.target.value })}
+                  className={INPUT_CLASSES}
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-sm text-ink/70">קישור</span>
+                <input
+                  value={link.url}
+                  onChange={(e) => updateLoraLink(i, { url: e.target.value })}
+                  className={`${INPUT_CLASSES} font-mono`}
+                />
+              </label>
+            </div>
+          ))}
+          {loraLinksError && (
+            <p className="text-sm text-flare">{loraLinksError}</p>
+          )}
+          <SaveButton status={loraLinksStatus} />
         </form>
       </section>
     </main>

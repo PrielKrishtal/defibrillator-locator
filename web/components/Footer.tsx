@@ -2,9 +2,26 @@
 // homepage - MDA's map + 3 real LoRa 433MHz purchase sites. All 3 links
 // were confirmed live/in-stock/433MHz by direct fetch on 2026-07-12, after
 // the original Amazon link went dead stock (brief §11 has the full story).
+// The 3 links are admin-editable (site_content, same as the homepage/
+// why-volunteer copy) - MDA's map is not, since §2 only asks for "purchase"
+// content to be editable.
+import { getSiteContent, LORA_LINKS_KEY, DEFAULT_LORA_LINKS, type LoraPurchaseLink } from "@/lib/site-content";
+
 const EXTERNAL_LINK_CLASSES = "text-signal hover:underline";
 
-export function Footer() {
+// A Server Component (no "use client"): reads straight from Mongo, same
+// pattern as app/page.tsx, instead of round-tripping through the API route.
+export async function Footer() {
+  const rawLinks = await getSiteContent(LORA_LINKS_KEY, DEFAULT_LORA_LINKS);
+  // Falls back to the defaults on corrupted stored JSON, so a bad write
+  // never breaks the sitewide footer.
+  let links: LoraPurchaseLink[];
+  try {
+    links = JSON.parse(rawLinks);
+  } catch {
+    links = JSON.parse(DEFAULT_LORA_LINKS);
+  }
+
   return (
     // bg-line/20: a tinted overlay of the existing `line` token, not a new
     // color, just enough to read as a distinct region.
@@ -29,30 +46,17 @@ export function Footer() {
             רכישת מכשירי LoRa (433MHz)
           </h2>
           <div className="flex flex-wrap gap-x-6 gap-y-1">
-            <a
-              href="https://www.adafruit.com/product/3232"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={EXTERNAL_LINK_CLASSES}
-            >
-              Adafruit LoRa FeatherWing - RFM95W 433MHz
-            </a>
-            <a
-              href="https://www.sparkfun.com/lora-transceiver-module-rfm95cw.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={EXTERNAL_LINK_CLASSES}
-            >
-              SparkFun - LoRa Transceiver Module RFM95CW
-            </a>
-            <a
-              href="https://www.seeedstudio.com/Grove-LoRa-Radio-433MHz-p-2777.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={EXTERNAL_LINK_CLASSES}
-            >
-              Seeed Studio - Grove LoRa Radio 433MHz
-            </a>
+            {links.map((link, i) => (
+              <a
+                key={i}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={EXTERNAL_LINK_CLASSES}
+              >
+                {link.label}
+              </a>
+            ))}
           </div>
         </div>
 

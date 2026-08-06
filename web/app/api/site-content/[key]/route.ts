@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminFromRequest } from "@/lib/verify-admin";
+import { parseLoraPurchaseLinks } from "@/lib/validate-lora-links";
 import {
   getSiteContent,
   setSiteContent,
@@ -11,6 +12,8 @@ import {
   DEFAULT_HOMEPAGE_INTRO,
   WHY_VOLUNTEER_KEY,
   DEFAULT_WHY_VOLUNTEER,
+  LORA_LINKS_KEY,
+  DEFAULT_LORA_LINKS,
 } from "@/lib/site-content";
 
 // WHY a map of key -> default: each marketing-copy key just needs an entry
@@ -18,6 +21,7 @@ import {
 const KNOWN_KEYS: Record<string, string> = {
   [HOMEPAGE_INTRO_KEY]: DEFAULT_HOMEPAGE_INTRO,
   [WHY_VOLUNTEER_KEY]: DEFAULT_WHY_VOLUNTEER,
+  [LORA_LINKS_KEY]: DEFAULT_LORA_LINKS,
 };
 
 // Takes a content key from the route params and returns its current
@@ -54,6 +58,19 @@ export async function PATCH(
   const body = await req.json().catch(() => null);
   if (!body || typeof body.value !== "string") {
     return NextResponse.json({ error: "value is required" }, { status: 400 });
+  }
+
+  // lora_purchase_links stores JSON, not free text - validate its shape and
+  // URLs instead of accepting anything, then re-serialize the sanitized
+  // (trimmed) data rather than storing the raw body verbatim.
+  if (key === LORA_LINKS_KEY) {
+    const result = parseLoraPurchaseLinks(body.value);
+    if (!result.valid) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+    const value = JSON.stringify(result.data);
+    await setSiteContent(key, value);
+    return NextResponse.json({ key, value });
   }
 
   await setSiteContent(key, body.value);
