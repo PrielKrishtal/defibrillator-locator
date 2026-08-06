@@ -48,7 +48,7 @@ with refresh-token support.
 
 Two servers, two databases, split by responsibility:
 
-![Architecture diagram: web/ (Next.js on Vercel) talks to Supabase and MongoDB Atlas directly, and to auth-server/ (Express on Render) over JWT + a refresh cookie; auth-server talks only to Supabase.](docs/assets/architecture-diagram.png)
+<img src="docs/assets/architecture-diagram.png" width="781" alt="Architecture diagram: web/ (Next.js on Vercel) talks to Supabase and MongoDB Atlas directly, and to auth-server/ (Express on Render) over JWT + a refresh cookie; auth-server talks only to Supabase." />
 
 - **Next.js app (`web/`, on Vercel)** — serves every public and admin page,
   plus its own API routes, all talking directly to both databases:
