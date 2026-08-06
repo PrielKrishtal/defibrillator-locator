@@ -48,30 +48,7 @@ with refresh-token support.
 
 Two servers, two databases, split by responsibility:
 
-```
-┌───────────────────────────────┐        ┌──────────────────────────────┐
-│  web/  (Next.js 16, Vercel)   │        │  auth-server/ (Express,      │
-│                               │        │  Render)                     │
-│  - every public + admin page  │  JWT   │                              │
-│  - own API routes:            │◄──────►│  POST /login                 │
-│    /api/registrations         │ cookie │  POST /refresh                │
-│    /api/devices                │ +token │  POST /logout                 │
-│    /api/incident                │        │  GET  /me (verifyToken)      │
-│    /api/route                  │        │  GET  /health                │
-│    /api/settings/radius        │        │                              │
-│    /api/site-content/[key]     │        │  Does ONE thing: admin auth.  │
-└───────────┬──────────┬─────────┘        └──────────────┬───────────────┘
-            │          │                                  │
-            ▼          ▼                                  ▼
-   ┌─────────────┐  ┌────────────────┐          ┌─────────────────┐
-   │ Supabase     │  │ MongoDB Atlas   │          │ Supabase         │
-   │ (Postgres)   │  │ (Mongoose)      │          │ (same project)   │
-   │              │  │                 │          │                  │
-   │ registrations│  │ devices         │          │ admins           │
-   │ (web only)   │  │ site_settings   │          │ refresh_tokens   │
-   └─────────────┘  └────────────────┘          │ (auth-server only)│
-                                                  └─────────────────┘
-```
+![Architecture diagram: web/ (Next.js on Vercel) talks to Supabase and MongoDB Atlas directly, and to auth-server/ (Express on Render) over JWT + a refresh cookie; auth-server talks only to Supabase.](docs/assets/architecture-diagram.png)
 
 - **Next.js app (`web/`, on Vercel)** — serves every public and admin page,
   plus its own API routes, all talking directly to both databases:
