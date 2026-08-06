@@ -48,51 +48,92 @@ with refresh-token support.
 
 Two servers, two databases, split by responsibility:
 
-- **Next.js app (`web/`, on Vercel)** serves every public and admin page and
-  its own API routes (`/api/registrations`, `/api/devices`, `/api/incident`,
-  `/api/route`, `/api/settings/radius`, `/api/site-content/[key]`). These
-  routes talk directly to both databases.
-- **Express auth server (`auth-server/`, on Render)** does one thing: admin
-  authentication. `/login`, `/refresh`, `/logout`, and a `verifyToken`
-  middleware. It is deliberately small so the JWT flow is easy to audit.
+```
+┌───────────────────────────────┐        ┌──────────────────────────────┐
+│  web/  (Next.js 16, Vercel)   │        │  auth-server/ (Express,      │
+│                               │        │  Render)                     │
+│  - every public + admin page  │  JWT   │                              │
+│  - own API routes:            │◄──────►│  POST /login                 │
+│    /api/registrations         │ cookie │  POST /refresh                │
+│    /api/devices                │ +token │  POST /logout                 │
+│    /api/incident                │        │  GET  /me (verifyToken)      │
+│    /api/route                  │        │  GET  /health                │
+│    /api/settings/radius        │        │                              │
+│    /api/site-content/[key]     │        │  Does ONE thing: admin auth.  │
+└───────────┬──────────┬─────────┘        └──────────────┬───────────────┘
+            │          │                                  │
+            ▼          ▼                                  ▼
+   ┌─────────────┐  ┌────────────────┐          ┌─────────────────┐
+   │ Supabase     │  │ MongoDB Atlas   │          │ Supabase         │
+   │ (Postgres)   │  │ (Mongoose)      │          │ (same project)   │
+   │              │  │                 │          │                  │
+   │ registrations│  │ devices         │          │ admins           │
+   │ (web only)   │  │ site_settings   │          │ refresh_tokens   │
+   └─────────────┘  └────────────────┘          │ (auth-server only)│
+                                                  └─────────────────┘
+```
+
+- **Next.js app (`web/`, on Vercel)** — serves every public and admin page,
+  plus its own API routes, all talking directly to both databases:
+  - `/api/registrations` and `/api/registrations/[id]`
+  - `/api/devices`
+  - `/api/incident`
+  - `/api/route`
+  - `/api/settings/radius`
+  - `/api/site-content/[key]`
+- **Express auth server (`auth-server/`, on Render)** — does one thing: admin
+  authentication. Deliberately small so the JWT flow is easy to audit:
+  - `POST /login`, `POST /refresh`, `POST /logout`
+  - `GET /me` (behind `verifyToken`) and `GET /health`
 
 **Databases, split by data shape:**
 
-- **Supabase / PostgreSQL** holds relational data: `registrations` (the public
-  sign-ups), `admins` (credentials), and `refresh_tokens` (issued refresh-token
-  IDs, so a token can be revoked on logout).
-- **MongoDB Atlas** holds flexible/document data: `devices` (the ~50 simulated
-  LoRa/defibrillator devices) and `site_settings` (admin-editable homepage copy
-  and the simulator radius).
+- **Supabase / PostgreSQL** holds relational data:
+  - `registrations` — the public sign-ups
+  - `admins` — credentials
+  - `refresh_tokens` — issued refresh-token IDs, so a token can be revoked on
+    logout
+- **MongoDB Atlas** holds flexible/document data:
+  - `devices` — the ~50 simulated LoRa/defibrillator devices
+  - `site_settings` — admin-editable homepage copy and the simulator radius
 
-**The JWT flow.** Login issues a short-lived access token (15 min, returned in
-the JSON body and held in browser memory) and a long-lived refresh token (7
-days, in an httpOnly cookie). The refresh token's ID is stored in Supabase;
-logout deletes that row, which revokes the token even before it expires. The
-Next.js API routes verify access tokens locally with the shared
-`JWT_ACCESS_SECRET` (a signature check, no network call back to the auth
-server).
+**The JWT flow:**
 
-**Cross-origin note.** In production the web app and auth server are on
-different domains (Vercel vs Render), so the refresh cookie is set with
-`SameSite=None; Secure` and the auth server allows exactly the web app's origin
-with credentials. Locally both run on `localhost` (same site), where the cookie
-uses `SameSite=Lax` over http.
+- Login issues a short-lived access token (15 min, returned in the JSON body
+  and held in browser memory) and a long-lived refresh token (7 days, in an
+  httpOnly cookie).
+- The refresh token's ID is stored in Supabase; logout deletes that row, which
+  revokes the token even before it expires.
+- The Next.js API routes verify access tokens locally with the shared
+  `JWT_ACCESS_SECRET` (a signature check, no network call back to the auth
+  server).
+
+**Cross-origin note:**
+
+- In production the web app and auth server are on different domains (Vercel
+  vs Render), so the refresh cookie is set with `SameSite=None; Secure` and
+  the auth server allows exactly the web app's origin with credentials.
+- Locally both run on `localhost` (same site), where the cookie uses
+  `SameSite=Lax` over http.
 
 ## Features
 
 - **Homepage** - explains LoRa in three lines, with a diagram of how a distress
   call flows (LoRa/Meshtastic to a GPS point, or SMS with the phone owner's
   number and location). Marketing copy is admin-editable.
-- **Incident page (`/incident`)** - click anywhere on the map to place a
-  distress call. The system geo-fences devices within the configured radius
-  (straight-line Haversine distance), marks the nearest one, and draws a
-  cycling route to it via OSRM. If OSRM is slow or unavailable, it falls back to
-  a straight line so the page stays useful.
+- **Incident page (`/incident`)** - click anywhere on the map, or use the
+  quick-simulate button, to place a distress call. The system geo-fences
+  devices within the configured radius (straight-line Haversine distance),
+  marks the nearest one, and draws a cycling route to it via OSRM. If OSRM is
+  slow or unavailable, it falls back to a straight line so the page stays
+  useful. A golden-window timer tracks elapsed time against the ETA, color-coded
+  by survival-dropoff research (green under 4 minutes, amber 4-10, red past
+  10).
 - **Registration (`/register`)** - first name (required), last name, mobile
   (required), and LoRa ID. No password: public registrants don't authenticate.
 - **Admin dashboard (`/admin`)** - manage registrations, adjust the simulator
-  radius, and edit homepage marketing copy. Protected by the JWT flow above.
+  radius, edit homepage marketing copy, and review the simulated device fleet
+  (battery levels included). Protected by the JWT flow above.
 - **External links** - the defibrillator map used by MDA's dispatch center, and
   three real 433 MHz LoRa purchase sites.
 
@@ -155,16 +196,20 @@ The auth server deploys to Render (root directory `auth-server`, build
 
 Environment variables in production:
 
-- **Render (`auth-server`):** `NODE_ENV=production`, `SUPABASE_URL`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and
-  `WEB_APP_ORIGIN` set to the exact Vercel URL (no trailing slash). `PORT` is
-  provided by Render automatically. `NODE_ENV=production` is what switches the
-  refresh cookie to `Secure` + `SameSite=None`.
-- **Vercel (`web`):** `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-  `MONGODB_URI`, `JWT_ACCESS_SECRET` (must match Render's), and
-  `NEXT_PUBLIC_AUTH_SERVER_URL` set to the Render URL. Because
-  `NEXT_PUBLIC_*` variables are inlined at build time, changing this value
-  requires a redeploy without build cache to take effect.
+- **Render (`auth-server`):**
+  - `NODE_ENV=production` — also what switches the refresh cookie to
+    `Secure` + `SameSite=None`
+  - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+  - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`
+  - `WEB_APP_ORIGIN` — set to the exact Vercel URL (no trailing slash)
+  - `PORT` — provided by Render automatically
+- **Vercel (`web`):**
+  - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+  - `MONGODB_URI`
+  - `JWT_ACCESS_SECRET` — must match Render's
+  - `NEXT_PUBLIC_AUTH_SERVER_URL` — set to the Render URL. Because
+    `NEXT_PUBLIC_*` variables are inlined at build time, changing this value
+    requires a redeploy without build cache to take effect.
 
 ## Testing
 
@@ -179,7 +224,7 @@ Both packages have a small `npm test` suite using Node's built-in test runner
   registration validation/sanitization logic — a pure function, so these need
   no server or `.env` file.
 
-Small and not comprehensive by design — see `KNOWN_BUGS.md` #9 for scope.
+Small and not comprehensive by design — see `KNOWN_BUGS.md` #10 for scope.
 
 ## Known issues
 
