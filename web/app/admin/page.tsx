@@ -24,6 +24,7 @@ type Device = {
   deviceId: string;
   hasLora: boolean;
   batteryLevel: number;
+  lastSeen: string;
 };
 
 type SaveStatus = "idle" | "saving" | "done" | "error";
@@ -302,6 +303,7 @@ export default function AdminDashboardPage() {
                 <th className="p-2 font-medium text-ink/70">מזהה מכשיר</th>
                 <th className="p-2 font-medium text-ink/70">LoRa</th>
                 <th className="p-2 font-medium text-ink/70">סוללה</th>
+                <th className="p-2 font-medium text-ink/70">נראה לאחרונה</th>
               </tr>
             </thead>
             <tbody>
@@ -314,11 +316,14 @@ export default function AdminDashboardPage() {
                   <td className="p-2">
                     <BatteryBadge level={d.batteryLevel} />
                   </td>
+                  <td className="p-2 font-mono text-ink/70">
+                    {formatLastSeen(d.lastSeen)}
+                  </td>
                 </tr>
               ))}
               {devices.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="p-4 text-center text-ink/50">
+                  <td colSpan={4} className="p-4 text-center text-ink/50">
                     אין מכשירים
                   </td>
                 </tr>
@@ -439,4 +444,14 @@ function BatteryBadge({ level }: { level: number }) {
       {level}%
     </span>
   );
+}
+
+// Takes an ISO date string and returns it formatted as "DD/MM/YYYY HH:MM".
+function formatLastSeen(iso: string): string {
+  const d = new Date(iso);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return `${day}/${month}/${d.getFullYear()} ${hours}:${minutes}`;
 }
