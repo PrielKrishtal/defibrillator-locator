@@ -18,6 +18,14 @@ export const metadata: Metadata = {
     "מערכת סימולציה לאיתור מתנדבים עם דפיברילטור נייד בקרבת אירוע דום לב",
 };
 
+// WHY force-dynamic: Footer (rendered here, on every route) and the
+// homepage both read admin-editable site_content directly from Mongo, not
+// via fetch() - Next.js's default static-generation heuristics don't know
+// that data can change, so without this, an admin's save landed in the
+// database but production kept serving the build-time HTML until the next
+// deploy. This trades static-shell caching for always-fresh admin content.
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
