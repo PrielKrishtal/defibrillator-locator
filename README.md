@@ -111,8 +111,8 @@ Two servers, two databases, split by responsibility:
   (required), and LoRa ID. No password: public registrants don't authenticate.
 - **Admin dashboard (`/admin`)** - manage registrations, adjust the simulator
   radius, edit homepage marketing copy (including the LoRa purchase links),
-  and review the simulated device fleet (battery levels included). Protected
-  by the JWT flow above.
+  and review the simulated device fleet (battery level and last-seen
+  timestamp included). Protected by the JWT flow above.
 - **External links** - the defibrillator map used by MDA's dispatch center
   (fixed), and three real 433 MHz LoRa purchase sites (admin-editable label +
   URL, validated to http/https only).
